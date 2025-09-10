@@ -3,9 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\File;
 use App\Models\Justification;
 use Illuminate\Http\Request;
 
+/**
+ * Class JustificationController
+ *
+ * Controlador para gestionar las justificaciones de ausencias de los usuarios. 
+ * Permite crear, listar, mostrar, actualizar y eliminar justificaciones.
+ *
+ * @package App\Http\Controllers
+ */
 class JustificationController extends Controller
 {
     /**
@@ -15,7 +24,9 @@ class JustificationController extends Controller
      */
     public function index()
     {
-        //
+        $justifications = Justification::with(['user', 'files'])->where('created_at', 'like', date('Y-m') . '%')->get();
+
+        return response()->json($justifications);
     }
 
     /**
@@ -29,10 +40,10 @@ class JustificationController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena una nueva justificación en la base de datos.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @param  \Illuminate\Http\Request  $request  La solicitud que contiene los datos de la justificación.
+     * @return \Illuminate\Http\Response La respuesta HTTP con el resultado de la operación.
      */
     public function store(Request $request)
     {
@@ -47,6 +58,16 @@ class JustificationController extends Controller
             'miss_time_departure' => $justification['departure_time']
         ]);
 
+        if ($request->hasFile('file')) {
+            $fileName = $request->file->getClientOriginalName();
+            $url = $request->file->move(public_path('files'), $fileName);
+            $newJustification->files()->create([
+                'url' => $fileName,
+                'type' => 3,
+                'status' => 0
+            ]);
+        }
+
         return response()->json([
             'msg' => 'success'
         ]);
@@ -60,7 +81,9 @@ class JustificationController extends Controller
      */
     public function show($id)
     {
-        //
+        $justifications = Justification::where('user_id', $id)->where('created_at', 'like', date('Y-m') . '%')->get();
+
+        return response()->json($justifications);
     }
 
     /**
@@ -95,5 +118,18 @@ class JustificationController extends Controller
     public function destroy($id)
     {
         //
+    }
+
+    /**
+     * Display a listing of the resource per month.
+     *
+     * 
+     * @return \Illuminate\Http\Response
+     */
+    public function justificationsPerMonth()
+    {
+        $justifications = Justification::with(['user', 'files'])->where('created_at', 'like', date('Y-m') . '%')->orderBy('id', 'desc')->get();
+
+        return response()->json($justifications);
     }
 }

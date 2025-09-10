@@ -31,7 +31,7 @@ class ContractController extends Controller
      */
     public function index()
     {
-        $contracts = Contract::with(['quotation', 'quotation.customers'])->orderBy('id', 'desc')->get();
+        $contracts = Contract::with(['quotation', 'quotation.customers'])->orderBy('id', 'desc')->paginate(20);
         return response()->json($contracts);
     }
 
@@ -229,16 +229,31 @@ class ContractController extends Controller
      */
     public function destroy($id)
     {
-        $contract = Contract::with(['payments', 'projects', 'projects.deliveries'])->find($id);
+        $contract = Contract::with(['payments', 'projects.deliveries', 'projects.posts'])->find($id);
 
-        if ($contract->payments) {
+        // Eliminar pagos asociados
+        if ($contract->payments->isNotEmpty()) {
             $contract->payments->each->delete();
         }
 
-        $contract->projects->each->deliveries->each->delete();
+        // Iterar sobre cada proyecto
+        $contract->projects->each(function ($project) {
 
-        $contract->projects->each->delete();
+            // Eliminar las entregas del proyecto
+            if ($project->deliveries->isNotEmpty()) {
+                $project->deliveries->each->delete();
+            }
 
+            // Eliminar los posts del proyecto
+            if ($project->posts->isNotEmpty()) {
+                $project->posts->each->delete();
+            }
+
+            // Eliminar el proyecto
+            $project->delete();
+        });
+
+        // Finalmente, eliminar el contrato
         $contract->delete();
 
         return response()->json([
@@ -246,6 +261,12 @@ class ContractController extends Controller
         ]);
     }
 
+    /**
+     * Update the contract with new details.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function updateContract(Request $request)
     {
 
@@ -320,7 +341,29 @@ class ContractController extends Controller
 
         return $contract;
     }
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $search
+     * @return \Illuminate\Http\Response
+     */
+    public function search($search)
+    {
+        $contracts = Contract::with(['quotation', 'quotation.customers'])
+            ->whereHas('quotation.customers', function ($query) use ($search) {
+                $query->where('name', 'like', '%' . $search . '%')->orWhere('cell', 'like', '%' . $search . '%');
+            })
+            ->orderBy('updated_at', 'desc')
+            ->get();
 
+        return response()->json($contracts);
+    }
+    /**
+     * Update the contract with new details.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function insertContract(Request $request)
     {
         // Validación de datos de clientes
@@ -330,7 +373,7 @@ class ContractController extends Controller
                 $rules_customer = [
                     'dni' => 'required',
                     'address' => 'required',
-                    'name' => 'required'
+                    'name' => 'required',
                     // Otras reglas de validación para el elemento del array
                 ];
 
@@ -350,7 +393,6 @@ class ContractController extends Controller
             foreach ($payments as $payment) {
                 $rules = [
                     'date' => 'required',
-                    // Otras reglas de validación para el elemento del array
                 ];
 
                 $validator = Validator::make($payment, $rules);
@@ -368,7 +410,8 @@ class ContractController extends Controller
             'date' => 'required',
             'payments' => 'required',
             'deliveries' => 'required',
-            'payments.*.date' => 'required'
+            'payments.*.date' => 'required',
+            'bank_account_type' => 'required|numeric|min:0|not_in:0'
             /*  'deliveries.date' => 'required', */
             /* 'deliveries.advance' => 'required' */
         ]);
@@ -385,19 +428,48 @@ class ContractController extends Controller
             'date' => $request->get('date'),
             'third_article' => $request->get('third_article'),
             'fifth_article' => $request->get('fifth_article'),
-            'third_article_place' => $request->get('third_article_place')
+            'third_article_place' => $request->get('third_article_place'),
+            'third_article_ppts' => $request->get('third_article_ppts'),
+            'fragment' => $request->get('fragment'),
+            'user_id' => $request->get('user_id'),
+            'bank_account_type' => $request->get('bank_account_type'),
+            'degree_modality_id' => $request->get('degree_modality_id'),
+            'thesis_type_id' => $request->get('thesis_type_id'),
+            'thesis_degree_id' => $request->get('thesis_degree_id'),
+            'cash_payment_discount' => $request->get('cash_payment_discount')
         ]);
 
         $customers = json_decode($request->get('customers'), true);
 
         // Asociar clientes con la cotización
-        $quotation = Quotation::find($request->get('quotation_id'));
+        $quotation = Quotation::with(['details'])->find($request->get('quotation_id'));
         $quotation->customers()->sync(array_column($customers, 'id'));
 
         // Actualizar estado de la cotización
         $contract->quotation->update([
             'status' => 9
         ]);
+
+        // Actualizar details de cotización
+        $quotation->details->each(function ($detail) {
+            $detail->delete();
+        });
+
+        $products =  json_decode($request->get('products'), true);
+
+        foreach ($products as $product) {
+            $detail = Detail::create([
+                'quotation_id' => $quotation->id,
+                'product_id' => $product['product_id'],
+                'type' => $product['type'],
+                'description' => '-',
+                'price' => $product['price'],
+                'level' => intval($product['level']) - 1,
+                'mode' => $product['mode'],
+                'extra_price' => $product['extra_price'],
+                'name' => $product['product']['name']
+            ]);
+        }
 
         //Create project
 
@@ -411,7 +483,9 @@ class ContractController extends Controller
 
         $deliveries = json_decode($request->get('deliveries'), true);
 
+
         foreach ($deliveries as $delivery) {
+
             Delivery::create([
                 'advance' => $delivery['advance'],
                 'status' => 0,
@@ -472,7 +546,12 @@ class ContractController extends Controller
 
         return response()->json($contract->id);
     }
-
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $quotationId
+     * @return \Illuminate\Http\Response
+     */
     private function verifyQuotation($quotationId)
     {
         $quotation = Quotation::find($quotationId);
@@ -538,7 +617,12 @@ class ContractController extends Controller
             }
         } */
     }
-
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $search
+     * @return \Illuminate\Http\Response
+     */
     public function searchContract($search)
     {
         $contracts = Contract::with(['quotation', 'quotation.customers'])->whereHas('quotation.customers', function ($query) use ($search) {
@@ -555,7 +639,12 @@ class ContractController extends Controller
             'orders' => $orders
         ]);
     }
-
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $customerId,$quotationId
+     * @return \Illuminate\Http\Response
+     */
     public function deleteCustomer($customerId, $quotationId)
     {
         $relationship = DB::table('customer_quotation')->where('customer_id', $customerId)->where('quotation_id', $quotationId)->delete();

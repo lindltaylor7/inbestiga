@@ -2,7 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\NewPost;
 use App\Models\File;
+use App\Models\Notification;
+use App\Models\Post;
+use App\Models\User;
 use Illuminate\Http\Request;
 use FileFacade;
 
@@ -122,6 +126,83 @@ class FileController extends Controller
             'url' => $fileName
         ]);
 
+        return response()->json(['success' => 'You have successfully upload file.']);
+    }
+
+    public function fileArchive(Request $request)
+    {
+        $fileName = $request->file->getClientOriginalName();
+        $url = $request->file->move(public_path('files'), $fileName);
+
+        $file = File::create([
+            'fileable_id' => $request->get('project_id'),
+            'fileable_type' => 'App\\Models\\Project',
+            'url' => $fileName,
+            'type' => 1,
+            'status' => $request->get('status')
+        ]);
+
+        return response()->json(['success' => 'You have successfully upload file.']);
+    }
+
+    public function filePost(Request $request)
+    {
+        if ($request->hasFile('file')) {
+            $validated = $request->validate([
+                'file' => 'file|mimes:doc,docx,xls,xlsx,pdf|max:5120', // max:5120 es para 5 MB
+            ]);
+        }
+
+
+        $post = Post::create([
+            'postable_id' => $request->get('user_id'),
+            'postable_type' => $request->get('postable_type'),
+            'title' => $request->get('title'),
+            'body' => $request->get('body'),
+            'project_id' => $request->get('project_id'),
+        ]);
+
+        if ($request->hasFile('file')) {
+            $fileName = $request->file->getClientOriginalName();
+            $url = $request->file->move(public_path('files'), $fileName);
+            $file = File::create([
+                'fileable_id' => $post->id,
+                'fileable_type' => 'App\\Models\\Post',
+                'url' => $fileName,
+                'type' => 3,
+                'status' => 0
+            ]);
+        }
+
+        $post->load(['postable', 'project', 'project.projectable']);
+
+        $notification = $post->postable->notifications()->create([
+            'content' => 'envió un nuevo post en su timeline.',
+            'type' => 1
+        ]);
+
+        $experience_users = User::where('subarea_id', 3)->get();
+
+        $experience_users->each(function ($user) use ($notification) {
+            $user->seens()->create([
+                'notification_id' => $notification->id,
+                'seen' => 0
+            ]);
+        });
+
+        if ($request->get('postable_type') == 'App\\Models\\Customer') {
+            broadcast(new NewPost($post));
+        }
+
+        return response()->json(['success' => 'You have successfully upload file.']);
+    }
+
+    public function enableFilePost($id)
+    {
+        $file = File::find($id);
+        $file->update([
+            'type' => 3
+        ]);
         return response()->json(['success' => 'You have successfully upload file.']);
     }
 }

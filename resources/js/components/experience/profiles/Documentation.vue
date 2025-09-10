@@ -1,593 +1,473 @@
 <template>
     <div class="container-xxl flex-grow-1 container-p-y">
-        <div class="row invoice-add">
-            <div class="card mb-2 px-0">
+        <div class="row">
+            <div class="card mb-2 p-2">
                 <div class="user-profile-header-banner">
-                    <img src="https://inbestiga.com/ficha_proyecto.jpg" alt="Banner image" class="rounded-top w-100">
-                </div>
-                <div class="user-profile-header d-flex flex-column flex-sm-row text-sm-start text-center mb-4">
-
-                    <div class="flex-grow-1 mt-3 mt-sm-5">
-                        <div
-                            class="d-flex align-items-md-end align-items-sm-start align-items-center justify-content-md-between justify-content-start mx-4 flex-md-row flex-column gap-4">
-                            <div class="user-profile-info">
-                                <!-- <p>Id de Contrato: {{ quotation.contract.id }}</p> -->
-                                <div class="row">
-                                    <span class="h5 mt-2 demo text-body fw-bold">1. Información General </span>
-                                    <div class="row">
-                                        <div class="col-4">
-                                            <p class="mb-2"><span class="fw-bold">Documento Firmado:</span> {{ signedDoc
-                                                }}
-                                            </p>
-
-                                            <p class="mb-2" v-if="quotation.contract"><span class="fw-bold">Lugar o
-                                                    contexto
-                                                    de estudio:</span> {{
-                                                quotation.contract.third_article_place == 1 ? 'Tesista' : 'Inbestiga' }}
-                                            </p>
-                                        </div>
-                                        <div class="col-4">
-                                            <p class="mb-2"><span class="fw-bold">Servicio Contratado </span></p>
-                                            <p v-for="detail in quotation.details"> - {{
-                                                detail.name }}
-                                            </p>
-                                        </div>
-                                        <div class="col-4">
-                                            <p class="mb-2" v-if="quotation.contract"><span class="fw-bold">Aplicación
-                                                    de
-                                                    instrumentos:</span> {{
-                                                quotation.contract.third_article == 1 ? 'Tesista' : 'Inbestiga' }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- <a href="javascript:void(0)" class="btn btn-primary text-nowrap">
-                                <i class="bx bx-user-check me-1"></i>Connected
-                            </a> -->
-                        </div>
-                    </div>
+                    <img
+                        src="https://inbestiga.com/ficha_proyecto.jpg"
+                        alt="Banner image"
+                        class="rounded w-100"
+                    />
                 </div>
             </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <span class="h5 mt-2 demo text-body fw-bold">2. Clientes </span>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-3" v-for="customer in quotation.customers">
-                            <div class="card bg-primary p-2 mb-2">
-                                <div class="card-header d-flex align-items-center justify-content-between">
-                                    <h5 class="card-title m-0 me-2 text-white" :title="customer.name">{{
-                                                customer.name.substring(0,
-                                                    13)
-                                            }}</h5>
-                                    <div class="dropdown">
-                                        <button class="btn p-0" type="button" id="employeeList"
-                                            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                            <i class="bx bx-dots-vertical-rounded text-white"></i>
-                                        </button>
-                                        <div class="dropdown-menu dropdown-menu-end" aria-labelledby="employeeList"
-                                            style="">
-                                            <a class="dropdown-item" href="javascript:void(0);"
-                                                @click="updateCustomer(customer)">Editar</a>
-                                            <a v-if="quotation.customers.length >= 2" class="dropdown-item"
-                                                href="javascript:void(0);"
-                                                @click="deleteCustomerContract(customer.id, quotation.id)">Eliminar</a>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="card-body">
-                                    <ul
-                                        class="list-inline mb-0 d-flex align-items-center flex-wrap justify-content-sm-start justify-content-center gap-2 text-white">
-                                        <li class="list-inline-item fw-medium">
-                                            <i class="bx bx-id-card"></i> {{ customer.dni }}
-                                        </li>
-                                        <li class="list-inline-item fw-medium">
-                                            <i class="bx bx-pen"></i> {{ customer.career }}
-                                        </li>
-                                        <li class="list-inline-item fw-medium">
-                                            <i class="bx bxs-graduation"></i> {{ customer.university }}
-                                        </li>
-                                        <li class="list-inline-item fw-medium">
-                                            <i class="bx bx-phone"></i> {{ customer.cell }}
-                                        </li>
-                                        <li class="list-inline-item fw-medium">
-                                            <i class='bx bx-street-view'></i> Actitud: {{
-                                                customer.attitude ? customer.attitude : '-' }}
-                                        </li>
-                                    </ul>
-                                </div>
-
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        </div>
+        <div class="row">
+            <div class="col-6 px-0">
+                <GeneralInformation :quotation="quotation" />
+                <Customers
+                    :quotation="quotation"
+                    @updateCustomer="updateCustomer"
+                />
+                <Adendums
+                    @openAdendumsModal="openAdendumsModal"
+                    @getQuotation="getQuotation"
+                    :addendums="addendums"
+                />
+                <SelectTeams
+                    :teams="teams"
+                    :projectId="project.id"
+                    :teamSelected="project.team_id"
+                />
+                <AcademicInfo
+                    :academicType="typeQuiz"
+                    :newQuestions="questions"
+                    :propertiableId="contract.id"
+                    :documentaryTags="documentaryTags"
+                    :forms="forms"
+                />
+                <FilesRequired
+                    :filesProject="filesProject"
+                    :filesRequired="filesRequired"
+                    :project="project"
+                    @getQuotation="getQuotation"
+                />
             </div>
-
-
-            <div class="card invoice-preview-card mt-2">
-                <div class="card-body">
-                    <div class="row">
-                        <span class="h5 mt-2 demo text-body fw-bold">3. Estado del trámite universitario</span>
-                        <div class="table-responsive">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <template v-for="newQuestion in questions">
-                                            <td v-if="newQuestion.type == 2">{{ newQuestion.question }}</td>
-                                        </template>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <template v-for="newQuestion in questions">
-                                            <td v-if="newQuestion.type == 2">
-                                                <input type="checkbox" class="form-check-input"
-                                                    v-model="newQuestion.answer">
-                                            </td>
-                                        </template>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+            <div class="col-6 px-0 ps-2">
+                <FormPost
+                    :projectId="project.id"
+                    @getQuotation="getQuotation"
+                />
+                <div
+                    class="card bg-warning my-2 text-white"
+                    v-for="delivery in deliveries"
+                >
+                    <div class="card-header">
+                        <p>Entrega</p>
+                        {{ formatDate(delivery.date) }}
                     </div>
-                </div>
-            </div>
-
-
-            <div class="col-lg-6 col-12 mb-lg-0 mb-4">
-
-                <div class="card invoice-preview-card mt-2">
                     <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <div>
-                                <span class="h5 m-2 demo text-body fw-bold">4. Información Académica
-                                    <!-- <button class="btn btn-icon btn-success mx-1" @click="addNewQuestion"
-                                        title="Agregar Pregunta">
-                                        <i class="bx bx-plus"></i>
-                                    </button> -->
-                                    <!--  <button class="btn btn-icon btn-warning mx-1" @click="openComunicationsModal"
-                                        title="Comunicaciones">
-                                        <i class="bx bx-chat"></i>
-                                    </button> -->
-                                    <!-- <button class="btn btn-icon btn-primary mx-1" title="Link de Google Drive">
-                                    <i class='bx bxl-google'></i>
-                                </button> -->
-                                </span>
-                                <span>
-                                </span>
-                            </div>
-                            <div>
-
-                                <span v-if="customer.user" class="bg-info rounded w-auto p-2 text-white fw-bold">
-                                    <i class='bx bx-user-pin'></i> {{ customer.user.name }}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <template v-for="newQuestion in questions">
-                                <!-- <template v-if="newQuestion.type == 5">
-                                    <div class="col-12 px-1">
-                                        <p class="mb-1">{{ newQuestion.question }}</p>
-                                        <div class="input-group">
-                                            <span class="input-group-text" id="basic-addon11"><i
-                                                    class='bx bxl-google'></i></span>
-                                            <input type="text" class="form-control" v-model="newQuestion.answer"
-                                                placeholder="Link de Drive">
-                                        </div>
-                                    </div>
-                                </template> -->
-                                <!--   -->
-                            </template>
-                            <!-- <template v-for="newQuestion in newQuestions">
-                                
-                            </template> -->
-                            <!-- <template v-for="(newQuestion, index) in newQuestions">
-                                <div class="col-12 mt-2" v-if="newQuestion.type == 0">
-                                    <div class="card p-2 shadow">
-                                        <div class="d-flex">
-                                            <input type="text" class="form-control form-control-sm w-75"
-                                                placeholder="Pregunta o atributo" v-model="newQuestion.question">
-                                            <button @click="deleteNewQuestion(index)"
-                                                class="btn btn-icon btn-danger btn-sm ms-2"><i class="bx bx-x"></i></button>
-                                        </div>
-
-                                        <textarea name="" id="" cols="30" rows="3" class="form-control mt-1"
-                                            placeholder="Valor o respuesta" v-model="newQuestion.answer"></textarea>
-                                    </div>
-                                </div>
-                            </template> -->
-                        </div>
-                        <div class="row mt-2">
-                            <!-- <div class="col-12">
-                                <p class="fw-bold">a. Documentación Requerida</p>
-                                <div class="card bg-success text-white">
-                                    <div class="card-body">
-                                        <template v-for="newQuestion in newQuestions">
-                                            <template v-if="newQuestion.type == 4 && newQuestion.subtype == 'a'">
-                                                <div class="form-check mt-3">
-                                                    <input class="form-check-input" type="checkbox"
-                                                        v-model="newQuestion.answer" id="defaultCheck1">
-                                                    <label class="form-check-label" for="defaultCheck1"> {{
-                                                newQuestion.question }}</label>
-                                                </div>
-                                            </template>
-
-                                        </template>
-                                    </div>
-                                </div>
-                            </div> -->
-                            <div class="col-12">
-                                <template v-for="newQuestion in questions">
-                                    <template v-if="newQuestion.type == 4">
-                                        <div class="d-flex mb-2">
-                                            <label class="form-check-label" for="flexSwitchCheckDefault">{{
-                                                newQuestion.question }}</label>
-                                            <div class="form-check form-switch ps-5">
-                                                <input class="form-check-input" type="checkbox"
-                                                    id="flexSwitchCheckDefault" v-model="newQuestion.answer">
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <template v-if="newQuestion.type == 3">
-                                        <p class="mb-1">{{ newQuestion.question }}</p>
-                                        <textarea v-model="newQuestion.answer" class="form-control mb-4"></textarea>
-                                    </template>
-                                    <template v-if="newQuestion.type == 6">
-                                        <div class="col-12 px-1">
-                                            <p class="mb-1">{{ newQuestion.question }}</p>
-                                            <select v-model="newQuestion.answer" class="form-select">
-                                                <option :value="`${index + 1}`"
-                                                    v-for="(option, index) in newQuestion.options">
-                                                    {{
-                                                option }}</option>
-                                            </select>
-                                        </div>
-                                    </template>
-                                </template>
-                                <button class="btn btn-success w-100 mt-2" @click="saveFields">Insertar</button>
-                            </div>
-                        </div>
+                        {{ delivery.advance }}
                     </div>
                 </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card invoice-preview-card mt-2">
+                <div
+                    class="card bg-primary my-2 text-white"
+                    v-for="payment in payments"
+                >
+                    <div class="card-header">
+                        <p>Pago</p>
+                        {{ formatDate(payment.date) }}
+                    </div>
+                    <div class="card-body">S./ {{ payment.amount }}</div>
+                </div>
+                <div
+                    class="card bg-secondary my-2 text-white"
+                    v-for="voucher in externalVouchers"
+                >
+                    <div class="card-header">
+                        Voucher Externo {{ formatDate(voucher.created_at) }}
+                    </div>
                     <div class="card-body">
-                        <label for="">Nueva Actualización</label>
-                        <input type="text" v-model="newUpdate.question" placeholder="Título..." class="form-control">
-                        <textarea placeholder="Cuerpo..." v-model="newUpdate.answer" class="form-control mt-2"
-                            rows="5"></textarea>
-
-                        <button class="btn btn-info w-100 mt-2" @click="updateFields">Actualizar</button>
+                        <button
+                            class="btn btn-icon btn-success"
+                            @click="showVoucherImage(voucher)"
+                        >
+                            <i class="bx bx-file text-white"></i>
+                        </button>
                     </div>
                 </div>
-                <!-- <div class="card mt-2 bg-success">
-                    <div class="card-body text-white">
-                        <h4 class="text-white">Cotización</h4>
-                        <p>{{ formatDate(quotation.created_at) }}</p>
-                    </div>
-                </div> -->
-
-                <template v-for="(newQuestion, index) in questions.slice().reverse()">
-                    <div class="col-12 mt-2" v-if="newQuestion.type == 0">
-                        <div class="card bg-warning p-2 shadow">
-                            <div class="card-body text-white">
-                                <h4 class="text-white">{{ newQuestion.question }}</h4>
-                                <p>{{ newQuestion.answer }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-                <div class="card mt-2 bg-success" v-for="comunication in  customer.comunications">
-                    <div class="card-body text-white">
-                        <h4 class="text-white">Comunicación con ventas</h4>
-                        <p>{{ comunication.comment }}</p>
-                        {{ formatDate(comunication.created_at) }}
-                    </div>
-                </div>
-                <div class="card mt-2 bg-info text-white">
-                    <div class="card-body">
-                        <h4 class="text-white">Registro inicial</h4>
-                        {{ formatDate(customer.created_at) }}
-                    </div>
-                </div>
+                <Post
+                    :post="post"
+                    v-for="post in posts"
+                    @getQuotation="getQuotation"
+                />
             </div>
         </div>
     </div>
     <ComunicationsModal :comunications="customer.comunications" />
     <customerModal :action="action" :customer="customerSelected" />
+    <AdendumsModal
+        :contract="contract"
+        :payments="payments"
+        @getQuotation="getQuotation"
+        :project_id="project.id"
+    />
 </template>
 <script>
-import moment from 'moment';
-import axios from 'axios';
-import Attrib from './Attrib.vue';
-import ComunicationsModal from './ComunicationsModal.vue';
-import customerModal from '../../sales/customers/customerModal.vue';
+import moment from "moment";
+import axios from "axios";
+import GeneralInformation from "./GeneralInformation.vue";
+import Customers from "./Customers.vue";
+import FormPost from "./FormPost.vue";
+import FrontPage from "./FrontPage.vue";
+import FilesRequired from "./FilesRequired.vue";
+import CardMeetings from "./CardMeetings.vue";
+import Attrib from "./Attrib.vue";
+import ComunicationsModal from "./ComunicationsModal.vue";
+import customerModal from "../../sales/customers/customerModal.vue";
+import Documentary from "./Documentary.vue";
+import File from "./File.vue";
+import AcademicInfo from "./AcademicInfo.vue";
+import Post from "./Post.vue";
+import Adendums from "./Adendums.vue";
+import AdendumsModal from "./AdendumsModal.vue";
+import SelectTeams from "./SelectTeams.vue";
+import { userStore } from "../../../stores/UserStore";
 
 export default {
+    setup() {
+        const store = userStore();
+        return {
+            store,
+        };
+    },
     components: {
-        Attrib, ComunicationsModal, customerModal
+        Attrib,
+        ComunicationsModal,
+        customerModal,
+        Documentary,
+        File,
+        AcademicInfo,
+        Post,
+        FrontPage,
+        FilesRequired,
+        CardMeetings,
+        GeneralInformation,
+        Customers,
+        FormPost,
+        Adendums,
+        AdendumsModal,
+        SelectTeams,
     },
     data() {
         return {
             quotation: {},
+            contract: {},
+            project: {},
             customer: {},
             selectedDoc: {
                 propertiable_id: 0,
-                propertiable_type: ''
+                propertiable_type: "",
             },
             newFields: [],
             doc: {},
-            questions: [{
-                question: 'Tema',
-                answer: false,
-                type: 2
-            },
-            {
-                question: 'Plan de Tesis',
-                answer: false,
-                type: 2
-            },
-            {
-                question: 'Observaciones del Plan de Tesis',
-                answer: false,
-                type: 2
-            },
-            {
-                question: 'Aprobación del Plan de Tesis',
-                answer: false,
-                type: 2
-            },
-            {
-                question: 'Aplicación de instrumentos',
-                answer: false,
-                type: 2
-            },
-            {
-                question: 'Elaboración de Informe Final',
-                answer: false,
-                type: 2
-            },
-            {
-                question: 'Observaciones del informe final',
-                answer: false,
-                type: 2
-            },
-            {
-                question: 'Revisión de jurados',
-                answer: false,
-                type: 2
-            },
-            {
-                question: 'Sustentación Final',
-                answer: false,
-                type: 2
-            },
-            {
-                question: '¿Cuentas con experiencia laboral?',
-                answer: false,
-                type: 4
-            },
-            {
-                question: '¿Qué temas o problemática te gustaría investigar en base a esta experiencia laboral?',
-                answer: '',
-                type: 3
-            },
-            {
-                question: 'Comentános: ¿Hay algún tema que te haya llamado la atención en tu carrera y sobre el que quieras investigar? ¿Cuáles? o Escribe las líneas de investigación  de tu interés.',
-                answer: '',
-                type: 3
-            },
-            {
-                question: 'Según estos temas de interés. ¿Tienes acceso a esta información o lugar de estudio para llevar a cabo este tipo de investigación?',
-                answer: false,
-                type: 4
-            },
-            {
-                question: '¿Cúal es este lugar? Describe el lugar de estudio o información con la que cuentas',
-                answer: '',
-                type: 3
-            },
-            {
-                question: 'Si no tienes acceso a ningún lugar de estudio hasta el momento. Coméntanos el rubro de lugar de estudio que te gustaría realizar tu investigación. Por ejemplo: construcción, manufactura, comercio, almacenes, etc.',
-                answer: '',
-                type: 3
-            },
-            {
-                question: '¿Cuál es la índole de tu investigación?',
-                answer: 0,
-                type: 6,
-                options: ['Proyectual', 'Científico', 'Descriptivo', 'Correlacional', 'Explicativo', 'Implementación de un programa', 'No sé']
-            },
-            {
-                question: 'Nivel de detalle',
-                answer: 0,
-                type: 6,
-                options: ['Plano', 'Modelado', 'Simulaciones', 'Ninguno']
-            },
-            {
-                question: '¿Cuentas con conocimientos en investigación?',
-                answer: false,
-                type: 4
-            }
-            ],
+            questions: [],
             comunications: [],
             comunicationOptions: {
-                1: 'Llamar',
-                2: 'Escribir',
-                3: 'Meet'
+                1: "Llamar",
+                2: "Escribir",
+                3: "Meet",
             },
             properties: [],
             docType: 1,
             newUpdate: {
-                question: '',
-                answer: '',
-                type: 0
+                question: "",
+                answer: "",
+                type: 0,
             },
             customerSelected: {},
-            action: 0
-        }
+            action: 0,
+            formSelected: 0,
+            typeQuiz: 0,
+            forms: [],
+            documentaryTags: [],
+            project: {
+                id: 0,
+            },
+            filesProject: [],
+            postFiles: [],
+            filesRequired: [
+                {
+                    label: "Reglamento / lineamientos de investigación",
+                    status: 1,
+                    complete: false,
+                },
+                {
+                    label: "Estructura de plan de tesis/ informe final",
+                    status: 2,
+                    complete: false,
+                },
+                {
+                    label: "Plantilla de tesis o ejemplo de tesis",
+                    status: 3,
+                    complete: false,
+                },
+                {
+                    label: "Manual de redacción de su universidad (APA, ISO, Vancouver)",
+                    status: 4,
+                    complete: false,
+                },
+            ],
+            posts: [],
+            documentaryTags: [
+                { question: "Tema", answer: false, type: 2 },
+                {
+                    question: "Plan de Tesis",
+                    answer: false,
+                    type: 2,
+                },
+                {
+                    question: "Observaciones del Plan de Tesis",
+                    answer: false,
+                    type: 2,
+                },
+                {
+                    question: "Aprobación del Plan de Tesis",
+                    answer: false,
+                    type: 2,
+                },
+                {
+                    question: "Aplicación de instrumentos",
+                    answer: false,
+                    type: 2,
+                },
+                {
+                    question: "Elaboración de Informe Final",
+                    answer: false,
+                    type: 2,
+                },
+                {
+                    question: "Observaciones del informe final",
+                    answer: false,
+                    type: 2,
+                },
+                {
+                    question: "Revisión de jurados",
+                    answer: false,
+                    type: 2,
+                },
+                {
+                    question: "Sustentación Final",
+                    answer: false,
+                    type: 2,
+                },
+            ],
+            deliveries: [],
+            payments: [],
+            externalVouchers: [],
+            addendums: [],
+            teams: [],
+        };
     },
     methods: {
-        deleteCustomerContract(customerId, quotationId) {
-            if (confirm('Tienes la seguridad de eliminar este usuario? Recuerda que modificará el contrato y cotización')) {
-                axios.get(`/api/customer-contract/${customerId}/${quotationId}`)
-                    .then((result) => {
-                        console.log(result.data)
-                        this.getQuotation()
-                    }).catch((err) => {
-                        console.log(err)
-                    });
-            }
+        getTeams() {
+            axios
+                .get("/api/teams")
+                .then((result) => {
+                    this.teams = result.data;
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
+        },
+        openAdendumsModal() {
+            $("#adendumsModal").modal("show");
+        },
+        showVoucherImage(voucher) {
+            var imageUrl = voucher.images[0].url;
 
+            window.open(
+                "https://inbestiga.com/inbestiga/public/files/" + imageUrl
+            );
         },
         updateCustomer(customer) {
-            this.customerSelected = customer
-            this.action = 2
-            $('#customerModal').modal('show')
+            console.log(customer);
+            this.customerSelected = customer;
+            this.action = 2;
+            $("#customerModal").modal("show");
+        },
+
+        selectForm() {
+            console.log(this.formSelected);
+        },
+        deleteCustomerContract(customerId, quotationId) {
+            if (
+                confirm(
+                    "Tienes la seguridad de eliminar este usuario? Recuerda que modificará el contrato y cotización"
+                )
+            ) {
+                axios
+                    .get(`/api/customer-contract/${customerId}/${quotationId}`)
+                    .then((result) => {
+                        console.log(result.data);
+                        this.getQuotation();
+                    })
+                    .catch((err) => {
+                        console.log(err);
+                    });
+            }
         },
         formatDate(date) {
-            return moment(date).format('DD/MM/YYYY')
+            return moment(date).format("DD/MM/YYYY");
         },
         deleteNewQuestion(index) {
             console.log(index);
             this.newQuestions.splice(index, 1);
         },
         openComunicationsModal() {
-            $('#ComunicationsModal').modal('show')
+            $("#ComunicationsModal").modal("show");
         },
         addNewQuestion() {
-            console.log('new question')
+            console.log("new question");
             var newQuestion = {
-                question: '',
-                answer: '',
-                type: 0
-            }
+                question: "",
+                answer: "",
+                type: 0,
+            };
 
-            this.newQuestions.push({ ...newQuestion })
+            this.newQuestions.push({ ...newQuestion });
         },
         getQuotation() {
+            this.filesProject = [];
             this.$swal.fire({
-                title: 'Cargando...',
+                title: "Cargando...",
                 allowOutsideClick: false,
-                showConfirmButton: false
-            })
-            axios.get('/api/quotations/' + this.$route.params.quotationId)
+                showConfirmButton: false,
+            });
+            axios
+                .get("/api/quotations/" + this.$route.params.quotationId)
                 .then((result) => {
-                    this.quotation = result.data
-                    console.log(this.quotation)
-                    this.customer = this.quotation.customers[0]
-                    this.comunications = this.customer.comunications
-                    if (this.quotation.contract && this.quotation.contract.properties[0]) {
+                    this.quotation = result.data;
+                    this.contract = this.quotation.contract;
+                    this.addendums = this.contract.addendums;
+                    this.project = this.quotation.contract.projects[0];
+                    this.deliveries =
+                        this.quotation.contract.projects[0].deliveries;
+                    this.payments = this.quotation.contract.payments;
+                    this.posts = this.project.posts;
+                    this.externalVouchers =
+                        this.quotation.contract.external_vouchers;
 
-                        var propertiesArr = this.quotation.contract.properties
+                    this.project.files.forEach((file) => {
+                        if (file.type == 1) {
+                            this.filesProject.push(file);
+                            var fileRequiredFound = this.filesRequired.find(
+                                (fileRequired) =>
+                                    fileRequired.status == file.status
+                            );
+                            fileRequiredFound.complete = true;
+                            file.label = fileRequiredFound.label;
+                        } else if (file.type == 2) {
+                            this.postFiles.push(file);
+                        }
+                    });
 
-                        propertiesArr.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+                    this.filesProject.forEach((file) => {
+                        if (file.type == 1) {
+                            var fileRequiredFound = this.filesRequired.find(
+                                (fileRequired) =>
+                                    fileRequired.status == file.status
+                            );
+                            fileRequiredFound.complete = true;
+                            file.label = fileRequiredFound.label;
+                        } else if (file.type == 2) {
+                            var indexFile = this.filesProject.findIndex(
+                                (fileProject) => fileProject.id == file.id
+                            );
+                            this.filesProject.splice(indexFile, 1);
+                        }
+                    });
 
-                        this.questions = JSON.parse(this.quotation.contract.properties[0].properties)
-                        this.docType = 2
-                        var findDriveField = this.questions.find(question => question.type == 5)
-                        var findBranchInvestigation = this.questions.find(question => question.type == 6)
-
-                        if (!findDriveField) {
-                            this.questions.push({
-                                question: 'Link de Drive',
-                                answer: '',
-                                type: 5
-                            })
+                    if (this.contract.properties[0]) {
+                        if (
+                            this.contract.properties[0].documentary_processing
+                        ) {
+                            this.documentaryTags = JSON.parse(
+                                this.contract.properties[0]
+                                    .documentary_processing
+                            );
                         }
 
-                        if (!findBranchInvestigation) {
-                            this.questions.push({
-                                question: 'Rama de investigación',
-                                answer: 0,
-                                type: 6
-                            })
-                        }
-                    } else if (this.quotation.order) {
-                        if (this.quotation.order.properties[0]) {
-                            this.questions = JSON.parse(this.quotation.order.properties[0].properties)
-                        }
+                        this.typeQuiz =
+                            this.contract.properties[0].project_situation_id;
 
+                        this.questions = JSON.parse(
+                            this.contract.properties[0].properties
+                        );
                     }
-                    this.$swal.close()
-                    console.log(this.properties)
-                }).catch((err) => {
-                    console.error(err)
+
+                    this.$swal.close();
+                })
+                .catch((err) => {
+                    console.error(err);
                 });
         },
-        updateFields() {
-            const fd = new FormData()
-            this.newQuestions.push({ ...this.newUpdate })
-            fd.append('propertiable_id', this.selectedDoc.propertiable_id)
-            fd.append('propertiable_type', this.selectedDoc.propertiable_type)
-            fd.append('properties', JSON.stringify(this.newQuestions))
-            fd.append('_method', 'put')
 
-            axios.post('/api/properties', fd)
-                .then((result) => {
-                    this.newUpdate = {
-                        question: '',
-                        answer: '',
-                        type: 0
-                    }
-                    this.$swal('Documentación de proyecto actualizada correctamente')
-                }).catch((err) => {
-                    this.$swal('Hubo un error')
-                });
-        },
         saveFields() {
-            const fd = new FormData()
+            const fd = new FormData();
 
-            fd.append('propertiable_id', this.selectedDoc.propertiable_id)
-            fd.append('propertiable_type', this.selectedDoc.propertiable_type)
-            fd.append('properties', JSON.stringify(this.questions))
+            fd.append("propertiable_id", this.selectedDoc.propertiable_id);
+            fd.append("propertiable_type", this.selectedDoc.propertiable_type);
+            fd.append("properties", JSON.stringify(this.questions));
+            fd.append(
+                "documentary_processing",
+                JSON.stringify(this.documentaryTags)
+            );
+            fd.append("project_situation_id", this.typeQuiz);
 
-            axios.post('/api/properties', fd)
+            axios
+                .post("/api/properties", fd)
                 .then((result) => {
-                    this.$swal('Documentación de proyecto almacenada correctamente')
-                }).catch((err) => {
-                    this.$swal('Hubo un error')
+                    this.$swal(
+                        "Documentación de proyecto almacenada correctamente"
+                    );
+                })
+                .catch((err) => {
+                    this.$swal("Hubo un error");
                 });
         },
         addNewField() {
             var newField = {
-                name: '',
-                val: ''
-            }
-            this.newFields.push({ ...newField })
+                name: "",
+                val: "",
+            };
+            this.newFields.push({ ...newField });
+        },
+        getForms() {
+            axios
+                .get("/api/forms")
+                .then((result) => {
+                    this.forms = result.data.forms;
+                })
+                .catch((err) => {
+                    console.log(err);
+                });
         },
     },
     computed: {
         signedDoc() {
             if (this.quotation) {
                 if (this.quotation.contract != null) {
-                    this.selectedDoc.propertiable_id = this.quotation.contract.id
-                    this.selectedDoc.propertiable_type = 'App\\Models\\Contract'
-                    this.doc = this.quotation.contract
-                    return 'Contrato'
+                    this.selectedDoc.propertiable_id =
+                        this.quotation.contract.id;
+                    this.selectedDoc.propertiable_type =
+                        "App\\Models\\Contract";
+                    this.doc = this.quotation.contract;
+                    return "Contrato";
                 } else if (this.quotation.order != null) {
-                    this.selectedDoc.propertiable_id = this.quotation.order.id
-                    this.selectedDoc.propertiable_type = 'App\\Models\\Order'
-                    this.doc = this.quotation.order
-                    return 'Orden'
+                    this.selectedDoc.propertiable_id = this.quotation.order.id;
+                    this.selectedDoc.propertiable_type = "App\\Models\\Order";
+                    this.doc = this.quotation.order;
+                    return "Orden";
                 }
             }
-
-        }
-        /* slugify(string) {
-            console.log(typeof string)
-            return     // Replace spaces with hyphen (-)
-        } */
+        },
     },
     mounted() {
-        this.getQuotation()
-    }
-}
+        this.getQuotation();
+        this.getForms();
+        this.getTeams();
+    },
+};
 </script>
 <style scoped>
 .form-check {

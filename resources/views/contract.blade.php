@@ -140,11 +140,11 @@
     <body>
         <!-- Define header and footer blocks before your content -->
         <header>
-            <img src="https://jairpl.com/pdf-sys/contract/contractHeader.png" alt="">
+            <img src="https://inbestiga.com/inbestiga/public/img/contract/contractHeader.png" alt="">
         </header>
 
         <footer>
-            <img src="https://jairpl.com/pdf-sys/contract/contractFooter.png" alt="">
+            <img src="https://inbestiga.com/inbestiga/public/img/contract/contractFooter.png" alt="">
         </footer>
 
             <img src="" alt="">
@@ -157,7 +157,7 @@
                 <ul>
                     <li style="text-align: justify">
                         INBESTIGA SOCIEDAD ANÓNIMA CERRADA, empresa identificada con RUC No. 20609545535, 
-                        con domicilio para estos efectos en Calle Elías Aguirre 180º, distrito de Miraflores y provincia de Lima; a quien en adelante se le denominará como “EL LOCADOR”.</li>
+                        con domicilio para estos efectos en Calle Mártir José Olaya 169º Oficina 505, distrito de Miraflores y provincia de Lima; a quien en adelante se le denominará como “EL LOCADOR”.</li>
                         Y, de la otra parte:
                         
                     <li>@if(count($contract->quotation->customers) > 1)
@@ -176,7 +176,11 @@
                 </p>
                 <p>
                     <span>PRIMERO: OBJETO DEL CONTRATO.</span><br>
-                EL CONTRATO se celebra con el objeto de que EL LOCADOR entregue a favor de EL ASESORADO un producto académico según los parámetros del contrato y la observancia del reglamento de la {{$contract->quotation->customers[0]->university}} y la carrera o mención de {{$contract->quotation->customers[0]->career}} - N{{$contract->quotation->details[0]->level}}.
+                EL CONTRATO se celebra con el objeto de que EL LOCADOR entregue a favor de EL ASESORADO los productos académicos que corresponden a 
+                @foreach($contract->quotation->details as $detail)
+                    {{$detail->name}}, 
+                @endforeach
+                según los parámetros del contrato y la observancia del reglamento de la {{$contract->quotation->customers[0]->university}} y la carrera o mención de {{$contract->quotation->customers[0]->career}} - N{{$contract->quotation->details[0]->level}}.
                 </p>
                 <p>
                     <span>SEGUNDO: OBLIGACIONES DEL LOCADOR.</span><br>
@@ -192,11 +196,18 @@
                             Proporcionar información sobre el lugar de estudio, la población y muestra
                         </li>
                     @endif
+                    @if($contract->third_article_ppts != 1)
+                        <li>
+                            Realizar las diapositivas para la sustentación, teniendo en consideración la información dada en el trabajo de investigación realizado.
+                        </li>
+                    @endif
                     <li>Entregar productos originales que garanticen bajos niveles de similitud con respecto de otros trabajos de investigación.
                     </li>
+                    @if($contract->fragment != 1)
                     <li>
                         Levantar las observaciones advertidas por los revisores universitarios hasta la obtención del informe que aprueba la sustentación.
                     </li>
+                    @endif
                     <li>
                         Ceder los derechos de propiedad intelectual a favor de EL ASESORADO, para los fines que este considere pertinentes.
                     </li>
@@ -213,14 +224,19 @@
                     <span>TERCERO: OBLIGACIONES DEL ASESORADO.</span><br>
                     EL ASESORADO se compromete a cumplir con lo siguiente:
                     <ul style="margin-top: -15px;">
-                        @if($contract->third_article == 1)
+                        @if($contract->third_article == 1 && $contract->fragment != 1)
                         <li>
                             Proporcionar la información de aplicación de instrumentos.
                         </li>
                         @endif
-                        @if($contract->third_article_place == 1)
+                        @if($contract->third_article_place == 1 && $contract->fragment != 1)
                         <li>
                             Proporcionar información sobre el lugar de estudio, la población y muestra
+                        </li>
+                        @endif
+                        @if($contract->third_article_ppts == 1 && $contract->fragment != 1)
+                        <li>
+                            Realizar las diapositivas para la sustentación, teniendo en consideración la información dada en el trabajo de investigación realizado.
                         </li>
                         @endif
                         <li>
@@ -240,6 +256,9 @@
                         </li>
                     </ul>
                 </p>
+                @if($contract->fragment == 1)
+                <div class="page-break"></div>
+                @endif
                 <p style="margin-top: 10px;">
                     <span>CUARTO: COSTO Y FORMA DEL PAGO.</span><br>
                 Como contraprestación al servicio prestado por EL LOCADOR, EL ASESORADO se compromete al abono de un monto total de
@@ -267,7 +286,11 @@
                 <p style="margin-top: -3px; margin-bottom: -5px;">El pago será abonado bajo las siguientes modalidades:</p>
                 
                 <ul style="margin-top: -5px;">
-                    <li> En efectivo: Exclusivamente en las instalaciones de la empresa, durante las horas hábiles de atención.</li>
+                    <li> En efectivo: Exclusivamente en las instalaciones de la empresa, durante las horas hábiles de atención.
+                        @if($contract->cash_payment_discount != 0)
+                        <span> Beneficios por pago en efectivo:</span> Para pagos en efectivo se hará descuento del 5%.
+                        @endif
+                </li>
                     <li> Link de pago: Este método se facilitará mediante plataformas seguras y confiables como Izi Pay y Niubiz, garantizando así la protección de sus datos financieros. El link para el pago se generará y enviará al cliente después de una coordinación previa con el asesor comercial asignado, ofreciendo una solución práctica y segura para realizar su pago.</li> 
                     <li>Transferencias Bancarias: Los pagos también podrán ser realizados a través de transferencias bancarias hacia cuentas específicamente autorizadas por la organización.</li>     
                 </ul>
@@ -280,79 +303,30 @@
                         </tr>
                     </thead>
                     <tbody>
+                        @foreach ($bank_accounts as $account)
                         <tr>
-                            <td>BCP</td>
+                            <td>{{$account->bank_entity->name}}</td>
                             <td>soles</td>
                             <td>
                                 <ul style=" margin-bottom: 5px; margin-top: -4px;">
                                     <li style="margin-bottom: -5px;">
-                                        CERVANTES POMA LIGEYA BERENICE 
+                                        {{$account->account_holder}}
                                     </li>
                                     <li style="margin-bottom: -5px;">
-                                        CC:355-9582757-0-060 
+                                       SAC N°{{$account->account_number}}
                                     </li>
                                     <li style="margin-bottom: -5px;">
-                                        CCI: 00235519582757006065
+                                        CCI: {{$account->cci}}
                                     </li>
                                 </ul>
                             </td>
                         </tr>
-                        <tr>
-                            <td>BCP</td>
-                            <td>soles</td>
-                            <td>                           
-                                <ul style=" margin-bottom: 5px; margin-top: -4px;">
-                                    <li style="margin-bottom: -5px;">
-                                        ALLASI GALARZA NICOLET JOYCE  
-                                    </li>
-                                    <li style="margin-bottom: -5px;">
-                                        CC: 355-95787567-0-53 
-                                    </li>
-                                    <li style="margin-bottom: -5px;">
-                                        CCI: 00235519578756705361
-                                    </li>
-                                </ul>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>BCP</td>
-                            <td>soles</td>
-                            <td>
-                                <ul style=" margin-bottom: 5px; margin-top: -4px;">
-                                    <li style="margin-bottom: -5px;">
-                                        ALLASI GALARZA STIL SALOMON  
-                                    </li>
-                                    <li style="margin-bottom: -5px;">
-                                        CC: 355-95767799-0-85  
-                                    </li>
-                                    <li style="margin-bottom: -5px;">
-                                        CCI: 00235519576779908565
-                                    </li>
-                                </ul>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>BCP</td>
-                            <td>soles</td>
-                            <td>
-                                <ul style=" margin-bottom: 5px; margin-top: -4px; ">
-                                    <li style="margin-bottom: -5px;">
-                                        LARA DEL CASTILLO VALERIA VANESSA 
-                                    </li>
-                                    <li style="margin-bottom: -5px;">
-                                        CC: 355-95768263-0-54
-                                    </li>
-                                    <li style="margin-bottom: -5px;">
-                                        CCI: 00235519576826305466
-                                    </li>
-                                </ul>
-                            </td>
-                        </tr>
+                        @endforeach
                     </tbody>
                 </table>
                {{--  <div class="page-break"></div> --}}
                 <span>QUINTO: ENTREGAS Y FORMA DE ENTREGAS.</span>
-                <p style="margin-top: -7px;">Las entregas que EL LOCADOR otorgará a favor de EL ASESORADO serán cargadas al correo y/o grupo de WhatsApp creado en los siguientes términos: </p>
+                <p style="margin-top: -7px;">Las entregas que EL LOCADOR otorgará a favor de EL ASESORADO serán cargadas al aula virtual en los siguientes términos: </p>
                 <table class="delivery-table" style="margin-top: -10px;">
                     <thead>
                         <tr>
@@ -412,23 +386,36 @@
                     total que EL ASESORADO estuviera pendiente de abonar, según el cronograma de la cláusula cuarta de EL 
                     CONTRATO.<br>
                     8.3. Sobre las entregas<br>
-                    EL LOCADOR tendrá una prórroga de hasta dos días hábiles para la entrega de los avances contenidos en la 
+                    EL LOCADOR tendrá una prórroga de hasta dos días hábiles para la entrega de los avances contenidos en la
                     cláusula quinta de EL CONTRATO. En caso de que EL LOCADOR cumpla tardíamente y sin justificación 
                     razonable con la entrega, EL ASESORADO tendrá la posibilidad de exigir un reembolso de S/15.00 (quince soles) 
-                    diarios por cada día de retraso en la entrega del producto académico correspondiente.
+                    diarios por cada día de retraso en la entrega del producto académico correspondiente, a menos que EL LOCADOR se haya comunicado previamente con EL ASESORADO para el aplazamiento de la entrega. Asimismo, si EL ASESORADO
+                    no proporciona la información requerida para el desarrollo del trabajo dentro del plazo establecido, las fechas
+                    de entrega de los productos académicos se ajustarán proporcionalmente al tiempo de demora en la entrega de dicha
+                    información.
                 </p>
                 <div class="page-break"></div>
+                
+                <p>
+                El levantamiento de observaciones estará sujeto a la actividad de EL ASESORADO. Aquellos usuarios que se mantengan activos y participen de manera constante en el proceso recibirán atención prioritaria, con un plazo máximo de hasta 21 días hábiles para el levantamiento de observaciones por parte de EL LOCADOR. En caso de que EL ASESORADO sea considerado inactivo, es decir, que haya dejado de utilizar el servicio por un periodo superior a tres meses, el plazo máximo para el levantamiento de observaciones será de hasta 45 días hábiles. En todos los casos, EL LOCADOR tomará en cuenta la complejidad de las observaciones para determinar los plazos correspondientes, salvo excepciones.
+                </p>
+                
                 <span>NOVENO: CONFIDENCIALIDAD </span>
                 <p>EL LOCADOR se compromete a mantener en reserva todos los datos de EL ASESORADO, incluso después de que las demás obligaciones de EL CONTRATO se hayan extinguido; a excepción de aquellos casos que la ley exija lo contrario.</p>
                
                 <span>DECIMO: GARANTÍA DEL SERVICIO</span><br>
+                @if ($contract->fragment != 1)
                 <p>EL CONTRATO no tiene una cláusula de prescripción de obligaciones por parte de EL LOCADOR  que se rija 
                     por el tiempo, sino que las obligaciones de este se extinguen únicamente cuando EL ASESORADO haya obtenido 
-                    el informe aprobatorio de los tres jurados revisores de la tesis; tanto sobre el documento, como en la sustentación.
+                    el informe aprobatorio de los jurados revisores de la tesis; tanto sobre el documento, como en la sustentación.
+                </p>
+                @endif
+                <p>
                     EL ASESORADO asume la responsabilidad sobre todo tipo de negligencia que pudiera aparecer en el producto 
                     académico, cuando esta es ocasionada por sí mismo, esto es, cuando la información proporcionada por EL 
                     ASESORADO es ilegítima, incorrecta, o influenciada por terceras personas ajenas al vínculo contractual o 
-                    personal universitario. </p>
+                    personal universitario. 
+                </p>
                     {{-- <div class="page-break"></div> --}}
                 <span>DÉCIMO PRIMERO: SANCIONES</span><br>
                 <p> En caso de que EL ASESORADO muestre conductas hostiles hacia cualquier miembro de la organización, este 
@@ -436,33 +423,27 @@
                     servicio no contenga beneficios adicionales, se sancionará a EL ASESORADO con un bono excedente de hasta 
                     S/.50.00 (cincuenta soles).</p>
                 <span>DÉCIMO SEGUNDO: SOLUCIÓN DE CONFLICTOS</span><br>
-                <p>En caso de desacuerdo durante la ejecución del presente contrato, estos deberán solucionarlo mediante 
+                <p style="margin-top: -5px;">En caso de desacuerdo durante la ejecución del presente contrato, estos deberán solucionarlo mediante 
                     conciliación extrajudicial.
                     En caso de presentarse cualquier asunto dudoso o litigioso derivado de la interpretación, aplicación o 
                     ejecución del presente contrato, las partes se someterán al fuero arbitral de la Cámara de Comercio de Lima 
                     según desee el interesado.</p> 
-                    
-                <span>DÉCIMO TERCERO: BONIFICACIONES</span><br>
-               <p>En caso de que EL ASESORADO refiera a EL LOCADOR y este celebre un contrato de índole similar a la del presente
-                  contrato, EL LOCADOR otorgará a EL ASESORADO una bonificación de acuerdo al siguiente esquema, basado en los
-                  ingresos generados para la empresa por cada contrato exitosamente celebrado:</p>
-                  <ul style="margin-top: -8px;">
-                    <li>Una bonificación de S/ 30.00  para ingresos inferiores a S/ 1,000.00.</li>
-                    <li>Una bonificación de S/ 50.00 para ingresos superiores a S/ 1,000.00 y menores a S/ 3,000.00.</li>
-                    <li>Una bonificación de S/ 100.00 para ingresos mayores a S/ 3,000.00 y menores a S/ 5,000.00.</li>
-                    <li>Una bonificación de S/ 150.00 para ingresos que excedan los S/ 5,000.00.</li>
-                </ul>
-                  <p>Este esquema de bonificaciones se aplicará por cada contrato referido que cumpla con los criterios de ingreso
-                     especificados anteriormente, y será efectivo una vez que se haya confirmado la celebración del contrato y se 
-                     haya verificado el cumplimiento de todas las condiciones pertinentes. EL LOCADOR se reserva el derecho de 
-                     realizar las verificaciones necesarias para asegurar la autenticidad y la legitimidad de cada contrato referido 
-                     antes de emitir cualquier bonificación.</p>  
-                     <div class="page-break"></div>                 
+                    <div class="page-break"></div>
+            <span>DÉCIMO TERCERO: BONIFICACIONES</span><br>
+                <p style="margin-top: -5px;">En caso de que EL ASESORADO refiera a EL LOCADOR y este celebre un contrato de índole similar al presente contrato, EL LOCADOR otorgará a EL ASESORADO una bonificación equivalente a S/ 80 por cada S/ 1,000 del valor total del contrato del referido. Esta bonificación se hará efectiva de la siguiente manera:</p>
+                <ul style="margin-top: -10px;">   
+                    <li>Para clientes con proyectos en curso: Si EL ASESORADO tiene un contrato activo y pendiente de pago, el bono será aplicado como descuento en la última cuota del contrato en curso.</li> 
+                    <li>Para clientes que ya terminaron de pagar: El bono se hará efectivo de la siguiente forma:
+                       <br> 50% del bono cuando el referido pague en su totalidad su primera cuota.50% restante del bono cuando el referido termine de pagar la segunda cuota
+                    </li>
+                    </ul>
+                    <p>EL LOCADOR se reserva el derecho de realizar las verificaciones necesarias para asegurar la autenticidad y la legitimidad de cada contrato referido antes de emitir cualquier bonificación.</p>
+                              
                     <p style="visibility: hidden">{{setlocale(LC_TIME, "spanish");}}</p>
                     <p>Las partes declaran haber leído el contrato, por lo que conocen y aceptan todas las cláusulas en su integridad, ambos firman el {{strftime('%d de %B de %Y',strtotime($contract->date))}}</p>
                     <div class="signatures">
                         <div class="col-signature">
-                            <img src="https://jairpl.com/pdf-sys/firmaBere.jpg" width="200">
+                            <img src="https://inbestiga.com/inbestiga/public/img/contract/firmaBere.jpg" width="200">
                             <div class="locator">
                                 <p>__________________________</p>
                                 <p>EL LOCADOR</p>

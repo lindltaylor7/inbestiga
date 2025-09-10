@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\NewCustomer;
 use App\Events\NewDocument;
 use App\Models\Quotation;
 use App\Http\Requests\StoreQuotationRequest;
@@ -10,18 +11,22 @@ use App\Models\Comission;
 use App\Models\Contract;
 use App\Models\Customer;
 use App\Models\Detail;
+use App\Models\External_voucher;
 use App\Models\Notification;
 use App\Models\Order;
+use App\Models\Post_form;
 use App\Models\Promotion;
 use App\Models\Seen;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use PDF;
+use Illuminate\Support\Facades\Hash;
 
 class QuotationController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Muestra una lista de las cotizaciones.
      *
      * @return \Illuminate\Http\Response
      */
@@ -42,7 +47,7 @@ class QuotationController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena una nueva cotización en la base de datos.
      *
      * @param  \App\Http\Requests\StoreQuotationRequest  $request
      * @return \Illuminate\Http\Response
@@ -163,7 +168,12 @@ class QuotationController extends Controller
         
          */
     }
-
+    /**
+     * Genera un PDF de la cotización especificada.
+     *
+     * @param  int  $id
+     * @return \Illuminate\View\View
+     */
     public function generatePDF($id)
     {
 
@@ -180,16 +190,18 @@ class QuotationController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Muestra la cotización especificada.
      *
-     * @param  \App\Models\Quotation  $quotation
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function show($id)
     {
-        $quotation = Quotation::where('id', $id)->with(['customers', 'customers.user', 'customers.comunications', 'details', 'details.product', 'order', 'contract', 'contract.projects', 'order.properties', 'contract.properties'])->orderBy('created_at', 'desc')->first();
-
-        return $quotation;
+        $quotation = Quotation::where('id', $id)->with(['customers', 'customers.province', 'customers.province.department', 'customers.province.department.provinces', 'customers.user', 'customers.comunications', 'details', 'details.product', 'order', 'contract', 'contract.external_vouchers', 'contract.external_vouchers.images', 'contract.user', 'contract.projects', 'contract.addendums', 'contract.addendums.user', 'contract.projects.team', 'contract.projects.team.users', 'contract.payments', 'contract.properties', 'contract.projects.team.users.roles', 'contract.projects.files', 'contract.projects.deliveries', 'contract.projects.posts' => function ($query) {
+            $query->orderBy('id', 'desc')->get();
+        }, 'contract.projects.posts.postable', 'contract.projects.posts.files', 'contract.properties' => function ($query) {
+            $query->orderBy('id', 'desc')->first();
+        }])->orderBy('created_at', 'desc')->first();
 
         return response()->json($quotation);
     }
@@ -218,9 +230,9 @@ class QuotationController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina la cotización especificada de la base de datos.
      *
-     * @param  \App\Models\Quotation  $quotation
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)
@@ -234,7 +246,12 @@ class QuotationController extends Controller
             'msg' => 'No existe cotización'
         ]);
     }
-
+    /**
+     * Obtiene la cotización asociada al ID del cliente.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function getQuotationByCustomerId($id)
     {
         $customer = Customer::find($id);
@@ -249,14 +266,24 @@ class QuotationController extends Controller
             ]);
         }
     }
-
+    /**
+     * Obtiene la cotización asociada a una orden específica.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function getQuotationByOrder($id)
     {
         $order = Order::where('id', $id)->with(['quotation', 'quotation.customers', 'quotation.details', 'quotation.details.product', 'quotation.details.product', 'payments'])->first();
 
         return response()->json($order);
     }
-
+    /**
+     * Actualiza una cotización existente.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function updateQuotation(Request $request)
     {
         $discount = 0;
@@ -329,23 +356,69 @@ class QuotationController extends Controller
             'id' => $quotation->id
         ]);
     }
-
+    /**
+     * Busca cotizaciones basadas en el nombre del cliente.
+     *
+     * @param string $search El término de búsqueda.
+     * @return \Illuminate\Http\JsonResponse La respuesta JSON con las cotizaciones encontradas.
+     */
     public function search($search)
     {
         $quotations = Quotation::with('customers')
             ->whereHas('customers', function ($query) use ($search) {
-                $query->whereRaw('LOWER(name) like ?', ['%' . strtolower($search) . '%']);
+                $query->where('name', 'like', '%' . $search)->orWhere('cell', 'like', '%' . $search);
             })->get();
 
         return response()->json($quotations);
     }
-
+    /**
+     * Busca cotizaciones por fecha.
+     *
+     * @param string $date La fecha a buscar.
+     * @return \Illuminate\Http\JsonResponse La respuesta JSON con las cotizaciones encontradas.
+     */
     public function searchQuotationsByDate($date)
     {
         $quotations = Quotation::with('customer')->where('date', $date)->get();
         return response()->json($quotations);
     }
-
+    /**
+     * Establece una relación entre un cliente y una cotización.
+     *
+     * @param int $customerId El ID del cliente.
+     * @param int $quotationId El ID de la cotización.
+     * @return \Illuminate\Http\JsonResponse La respuesta JSON indicando el éxito de la operación.
+     */
+    public function quotationCustomer($customerId, $quotationId)
+    {
+        DB::table('customer_quotation')->insert([
+            'customer_id' => $customerId,
+            'quotation_id' => $quotationId
+        ]);
+        return response()->json([
+            'msg' => 'success'
+        ]);
+    }
+    /**
+     * Elimina la relación entre un cliente y una cotización.
+     *
+     * @param int $customerId El ID del cliente.
+     * @param int $quotationId El ID de la cotización.
+     * @return \Illuminate\Http\JsonResponse La respuesta JSON indicando el éxito de la operación.
+     */
+    public function deleteQuotationCustomer($customerId, $quotationId)
+    {
+        $relationship = DB::table('customer_quotation')->where('customer_id', $customerId)->where('quotation_id', $quotationId)->delete();
+        return response()->json([
+            'msg' => 'success'
+        ]);
+    }
+    /**
+     * Obtiene las cotizaciones agrupadas por estado para un usuario específico.
+     *
+     * @param int $id El ID del usuario.
+     * @return \Illuminate\Support\Collection Las cotizaciones agrupadas por estado.
+     */
     public function getQuotationsFunnel($id)
     {
         $customers = Customer::whereHas('quotations')->where('user_id', $id)->get();
@@ -371,12 +444,17 @@ class QuotationController extends Controller
  */
         return response()->json($customers);
     }
-
+    /**
+     * Actualiza la calificación del cliente y, si es necesario, la contraseña.
+     *
+     * @param \Illuminate\Http\Request $request La solicitud con los datos a actualizar.
+     * @return \Illuminate\Http\JsonResponse La respuesta JSON indicando el éxito de la operación.
+     */
     public function updateCustomerGrade(Request $request)
     {
-        $status = $request->get('status');
-        $quotation = Quotation::find($request->get('quotation_id'));
 
+        $status = $request->get('status');
+        $quotation = Quotation::with('contract')->find($request->get('quotation_id'));
 
         if ($status >= 3) {
             $quotation->update([
@@ -384,60 +462,53 @@ class QuotationController extends Controller
             ]);
 
             $user = User::find($request->get('user_id'));
-
-            $comissionData = [
-                'quotation_id' => $quotation->id,
-                'referal' => $user->name,
-                'user_id' => $request->get('user_id')
-            ];
-
-            switch ($request->get('status')) {
-                    /*  case 3:
-                    $comissionData['concept'] = 'Obtención de datos';
-                    $comissionData['percent'] = 2;
-                    break; */
-                case 4:
-                    $comissionData['concept'] = 'Obtención de necesidades específicas';
-                    $comissionData['percent'] = 8;
-                    break;
-                case 5:
-                    $comissionData['concept'] = 'Cotización';
-                    $comissionData['percent'] = 5;
-                    break;
-                case 6:
-                    $comissionData['concept'] = 'Explicación de la cotización';
-                    $comissionData['percent'] = 5;
-                    break;
-                case 7:
-                    $comissionData['concept'] = 'Explicación de la experiencia';
-                    $comissionData['percent'] = 15;
-                    break;
-                case 8:
-                    $comissionData['concept'] = 'Seguimientos';
-                    $comissionData['percent'] = 15;
-                    break;
-                case 9:
-                    $comissionData['concept'] = 'Cierre no pagado';
-                    $comissionData['percent'] = 15;
-                    break;
-                case 10:
-                    $comissionData['concept'] = 'Seguimiento de cierre';
-                    $comissionData['percent'] = 10;
-                    break;
-                case 11:
-                    $comissionData['concept'] = 'Gestión Documental';
-                    $comissionData['percent'] = 2;
-                    break;
-            }
-
-            $comission = Comission::where('quotation_id', $request->get('quotation_id'))->where('user_id', $request->get('user_id'))->where('concept', $comissionData['concept'])->first();
-
-            if (!$comission) {
-                $newComission = Comission::create($comissionData);
-            }
         }
 
-        $oldStatus = intval($request->get('status')) - 1;
+        if ($status == 11) {
+
+            $post_form = Post_form::create([
+                'contract_id' => $quotation->contract->id,
+                'comunication_channel_id' => null,
+                'study_place_id' => null,
+                'marketing_source_id' => null,
+                'hire_factor_id' => null,
+                'contract_mode_id' => null,
+                'academic_situation_id' => null,
+                'professional_status_id' => null,
+                'participation_id' => null
+            ]);
+
+            $year = date('Y');
+            $month = date('m');
+
+            $mostActualContracts = Contract::where('code', 'like', '%' . $year . $month . '%')->get();
+
+            $contractsNumber = count($mostActualContracts);
+
+            if ($contractsNumber == 0) {
+                $contractsNumber = 1;
+            }
+
+            $contractsNumber++;
+
+            $codeGenerated =  str_pad($contractsNumber, 3, '0', STR_PAD_LEFT);
+
+            $quotation->contract->update([
+                'code' => $year . $month . $codeGenerated,
+                'registration_date' => date('Y-m-d')
+            ]);
+
+
+            $quotation->customers->each(function ($customer) use ($quotation) {
+                $customer->update([
+                    'password' => Hash::make($customer->dni)
+                ]);
+            });
+        }
+
+
+
+        broadcast(new NewCustomer($user));
 
         /* $eleventhCustomer = Customer::where('status', $oldStatus)->orderBy('updated_at', 'desc')->offset(10)->first(); */
         $quotation->customers->each->update([
@@ -448,7 +519,12 @@ class QuotationController extends Controller
             /* 'eleventhCustomer' => $eleventhCustomer */
         ]);
     }
-
+    /**
+     * Actualiza el estado de un cliente.
+     *
+     * @param \Illuminate\Http\Request $request La solicitud con los datos del cliente a actualizar.
+     * @return \Illuminate\Http\JsonResponse La respuesta JSON indicando el éxito de la operación.
+     */
     public function updateCustomerStatus(Request $request)
     {
         $customer = Customer::find($request->get('customer_id'));
@@ -460,19 +536,24 @@ class QuotationController extends Controller
             /* 'eleventhCustomer' => $eleventhCustomer */
         ]);
     }
-
+    /**
+     * Busca clientes, cotizaciones y contratos basados en un término de búsqueda.
+     *
+     * @param string $search El término de búsqueda.
+     * @return \Illuminate\Http\JsonResponse La respuesta JSON con los clientes, cotizaciones y contratos encontrados.
+     */
     public function searchQuotations($search)
     {
-        $customers = Customer::where('name', 'like', '%' . $search . '%')->orderBy('updated_at', 'desc')->get();
+        $customers = Customer::where('name', 'like', '%' . $search . '%')->orWhere('cell', 'like', '%' . $search . '%')->orderBy('updated_at', 'desc')->get();
 
         $quotations = Quotation::with('customers')->whereHas('customers', function ($query) use ($search) {
-            $query->where('name', 'like', '%' . $search . '%');
+            $query->where('name', 'like', '%' . $search . '%')->orWhere('cell', 'like', '%' . $search . '%');
         })->orderBy('updated_at', 'desc')->get();
 
 
         $contracts = Contract::with(['quotation', 'quotation.customers'])
             ->whereHas('quotation.customers', function ($query) use ($search) {
-                $query->where('name', 'like', '%' . $search . '%');
+                $query->where('name', 'like', '%' . $search . '%')->orWhere('cell', 'like', '%' . $search . '%');
             })
             ->orderBy('updated_at', 'desc')
             ->get();
@@ -481,6 +562,81 @@ class QuotationController extends Controller
             'customers' => $customers,
             'quotations' => $quotations,
             'contracts' => $contracts
+        ]);
+    }
+    /**
+     * Filtra las cotizaciones que no tienen un estado igual a 11.
+     *
+     * @return \Illuminate\Http\JsonResponse La respuesta JSON con las cotizaciones filtradas.
+     */
+    public function filterQuotations()
+    {
+        $quotations = Quotation::with('customers')->where('status', '!=', 11)->orderBy('id', 'desc')->paginate(300);
+        return response()->json([
+            'quotations' => $quotations
+        ]);
+    }
+    /**
+     * Filtra cotizaciones entre dos fechas.
+     *
+     * @param \Illuminate\Http\Request $request La solicitud con las fechas de inicio y fin.
+     * @return \Illuminate\Http\JsonResponse La respuesta JSON con las cotizaciones filtradas.
+     */
+    public function filterDates(Request $request)
+    {
+
+        $from = $request->get('startDate');
+        $to = $request->get('endDate');
+
+        $quotations = Quotation::with('customers')->whereBetween('date', [$from, $to])->where('status', '!=', 11)->orderBy('id', 'desc')->paginate(300);
+        return response()->json([
+            'quotations' => $quotations
+        ]);
+    }
+    /**
+     * Obtiene los clientes de un usuario específico que tienen cotizaciones activas.
+     *
+     * @return \Illuminate\Http\JsonResponse La respuesta JSON con los clientes encontrados.
+     */
+    public function customersLobo()
+    {
+
+        $quotations = Customer::where('user_id', 72)->whereHas('quotations', function ($query) {
+            $query->where('status', '!=', 11);
+        })->get();
+
+        return response()->json($quotations);
+    }
+    /**
+     * Obtiene las cotizaciones con vouchers externos asociados y que tienen un estado igual a 11.
+     *
+     * @return \Illuminate\Http\JsonResponse La respuesta JSON con las cotizaciones encontradas.
+     */
+    public function quotationVouchers()
+    {
+        /* $quotations = Quotation::with(['contract', 'contract.external_vouchers', 'contract.external_vouchers.images', 'contract.projects', 'customers'])->whereHas('contract.external_vouchers')->where('status', 11)->orderBy('updated_at', 'desc')->paginate(20); */
+
+        $external_vouchers = External_voucher::with(['customer', 'contract', 'contract.user', 'images'])->orderBy('created_at', 'asc')->get();
+
+        return response()->json($external_vouchers);
+    }
+    /**
+     * Actualiza el estado de un voucher externo.
+     *
+     * @param string $voucherStatus El nuevo estado del voucher.
+     * @param int $voucherId El ID del voucher a actualizar.
+     * @return \Illuminate\Http\JsonResponse La respuesta JSON indicando el éxito de la operación.
+     */
+    public function statusVoucher($voucherStatus, $voucherId)
+    {
+        $external_voucher = External_voucher::find($voucherId);
+
+        $external_voucher->update([
+            'status' => $voucherStatus
+        ]);
+
+        return response()->json([
+            'msg' => 'success'
         ]);
     }
 }

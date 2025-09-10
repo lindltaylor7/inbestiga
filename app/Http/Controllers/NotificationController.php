@@ -14,13 +14,17 @@ use Illuminate\Http\Request;
 class NotificationController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Muestra una lista de las últimas notificaciones.
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index($id)
     {
-        $notifications = Notification::with('user')->orderBy('id', 'desc')->take(5)->get();
+        $user = User::with(['seens' => function ($query) {
+            $query->orderBy('id', 'desc');
+        }, 'seens.notification', 'seens.notification.notificable'])->find($id);
+
+        $notifications = $user->seens;
 
         return response()->json($notifications);
     }
@@ -90,7 +94,12 @@ class NotificationController extends Controller
     {
         //
     }
-
+    /**
+     * Obtiene las notificaciones no vistas para el usuario especificado por su ID.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getNoSeenNotifications($id)
     {
         $seens = Seen::where('user_id', $id)->where('seen', 0)->orderBy('id', 'desc')->take(5)->get();
@@ -104,7 +113,12 @@ class NotificationController extends Controller
 
         return response()->json($notSeenNotifications);
     }
-
+    /**
+     * Obtiene todas las notificaciones para el usuario especificado por su ID.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getAllNotifications($id)
     {
         $seens = Seen::where('user_id', $id)->where('seen', 0)->orderBy('id', 'desc')->get();
@@ -119,6 +133,12 @@ class NotificationController extends Controller
         return response()->json($notifications);
     }
 
+    /**
+     * Inserta una notificación de rechazo para el proyecto especificado.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function insertReject(Request $request)
     {
         $project = Project::find($request->get('project_id'));
@@ -144,7 +164,12 @@ class NotificationController extends Controller
             'msg' => 'success'
         ]);
     }
-
+    /**
+     * Agrega una notificación de comunicación pendiente.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function addNotificationComunication(Request $request)
     {
         $notification = Notification::create([

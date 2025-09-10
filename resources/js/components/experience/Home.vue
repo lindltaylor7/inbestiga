@@ -1,54 +1,62 @@
 <template>
-  <div class="layout-wrapper layout-content-navbar">
-    <div class="layout-container">
-      <Sidebar :hidden="hidden" />
-      <div class="layout-page">
-        <Navbar @hideSidebar="hideSidebar" @darkMode="darkMode" />
-        <div class="content-wrapper">
-          <!-- Content -->
-          <router-view></router-view>
-          <!-- / Content -->
+    <div class="layout-wrapper layout-content-navbar">
+        <div class="layout-container">
+            <Sidebar :hidden="hidden" />
+            <div class="layout-page">
+                <Navbar @hideSidebar="hideSidebar" @darkMode="darkMode" />
+                <div class="content-wrapper">
+                    <!-- Content -->
+                    <router-view></router-view>
+                    <!-- / Content -->
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 </template>
 <script>
-import Sidebar from '../layout/Sidebar.vue'
-import Navbar from '../layout/Navbar.vue'
+import Sidebar from "../layout/Sidebar.vue";
+import Navbar from "../layout/Navbar.vue";
 
 export default {
-  components: { Sidebar, Navbar },
-  data() {
-    return {
-      hidden: true,
-      token: localStorage.getItem('token')
-    }
-  },
-  methods: {
-    hideSidebar() {
-      this.hidden = !this.hidden
+    components: { Sidebar, Navbar },
+    data() {
+        return {
+            hidden: true,
+            token: localStorage.getItem("token"),
+        };
     },
-    darkMode() {
-      $('nav').addClass('navbar-border-dark')
-      $('#layout-menu').removeClass('bg-primary');
-      $('#layout-menu').addClass('bg-dark');
-      $('.container-xxl').addClass('bg-dark');
-      $('#toggleIcon').removeClass('bx-moon')
-      $('#toggleIcon').addClass('bx-sun')
-      $('.card').addClass('bg-card-dark')
-      $('.card').filter('.bg-success').removeClass('bg-card-dark')
-      $('.layout-container').addClass('dark-mode')
-      $('.layout-page').addClass('dark-mode')
-      $('.content-wrapper').addClass('dark-mode')
-      $('aside').addClass('navbar-border-dark')
-      $('.menu-link').addClass('text-dark')
-    }
-  }
-}
-</script>  
+    methods: {
+        hideSidebar() {
+            this.hidden = !this.hidden;
+        },
+        darkMode() {
+            $("nav").addClass("navbar-border-dark");
+            $("#layout-menu").removeClass("bg-primary");
+            $("#layout-menu").addClass("bg-dark");
+            $(".container-xxl").addClass("bg-dark");
+            $("#toggleIcon").removeClass("bx-moon");
+            $("#toggleIcon").addClass("bx-sun");
+            $(".card").addClass("bg-card-dark");
+            $(".card").filter(".bg-success").removeClass("bg-card-dark");
+            $(".layout-container").addClass("dark-mode");
+            $(".layout-page").addClass("dark-mode");
+            $(".content-wrapper").addClass("dark-mode");
+            $("aside").addClass("navbar-border-dark");
+            $(".menu-link").addClass("text-dark");
+        },
+    },
+    mounted() {
+        console.log("mounted exp");
+        Echo.private("posts").listen("NewPost", (e) => {
+            console.log(e.post);
+            /*  this.postNotification = e.post;
+            $("#toastPost").toast("show"); */
+        });
+    },
+};
+</script>
 <style scoped>
 .dark-mode {
-  background-color: #232333 !important;
+    background-color: #232333 !important;
 }
 </style>

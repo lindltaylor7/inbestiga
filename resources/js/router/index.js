@@ -52,6 +52,7 @@ import HomeMyLeads from '../components/sales/myleads/Home.vue'
 //Área de ventas - Voucher
 import HomeVoucher from '../components/sales/voucher/Home.vue'
 import FileVoucher from '../components/sales/voucher/File.vue'
+import ContractVoucher from '../components/sales/makedocs/File.vue'
 
 // Área Académica
 import HomeAcad from '../components/academic/Home.vue'
@@ -127,22 +128,40 @@ import HomeComunications from '../components/experience/comunication/Home.vue'
 import HomeRequests from '../components/experience/requests/Home.vue'
 //Area de Experiencia - Documentacion
 import HomeDocumentation from '../components/experience/profiles/Documentation.vue'
+//Area de Experiencia - Formularios
+import HomeForms from '../components/experience/forms/Home.vue'
+//Area de Experiencia - Justificaciones
+import HomeJustifications from '../components/experience/justifications/Home.vue'
+//Area de Experiencia - PstVenta
+import HomePostSale from '../components/experience/postsale/Home.vue'
 
 //Área para los usuarios
+import Layout from '../components/user/Layout.vue'
 import UsersLogin from '../components/user/Login.vue'
 import HomeUser from '../components/user/HomeUser.vue'
+import ProjectUser from '../components/user/ProjectUser.vue'
 import DocumentationUser from '../components/user/DocumentationUser.vue'
+import ExperienceUser from '../components/user/ExperienceUser.vue'
+import ShowProjectUser from '../components/user/ShowProjectUser.vue'
+import BillingUser from '../components/user/BillingUser.vue'
+import VideoPage from '../components/user/VideoPage.vue'
 
 //Notifications
 import Notifications from '../components/layout/Notifications.vue'
 //Profile
 import Profile from '../components/profile/Home.vue'
 
+import Report from '../components/admin/report/Home.vue'
+
 //Trabajos
 import Jobs from '../components/jobs/Home.vue'
 
 //SandBox
 import Sandbox from '../components/admin/sandbox/Home.vue'
+
+//Finance
+import MainFinance from '../components/finance/Main.vue'
+import Earnings from '../components/finance/Earnings.vue'
 
 export const routes = [
     {
@@ -156,10 +175,33 @@ export const routes = [
         name: 'user-login'
     },
     {
-        path: '/home-user/:customerId',
-        component: HomeUser,
-        name: 'home-user',
-        props: true
+        path: '/user',
+        component: Layout,
+        children:[
+            {
+                path: ':customerId',
+                name: 'home-user',
+                component: HomeUser,
+                props: true
+            },
+            {
+                path: 'experience',
+                component: ExperienceUser,
+                name: 'experience-user'
+            },
+            {
+                path: 'project/:customerId',
+                name: 'project-user',
+                component: ProjectUser,
+                props: true
+            },
+            {
+                path: 'billing-user/:customerId',
+                component: BillingUser,
+                name: 'billing-user',
+                props: true
+            },
+        ]
     },
     {
         path: '/user-documentation/:quotationId',
@@ -168,11 +210,33 @@ export const routes = [
         props: true
     },
     {
+        path: '/show-project-user/:projectId',
+        component: ShowProjectUser,
+        name: 'show-project-user',
+        props: true
+    },
+    {
+        path: '/video-page/:categoryId',
+        component: VideoPage,
+        name: 'video-page',
+        props: true
+    },
+    {
         path: '/home',
         component: Home,
         name: 'home',
         meta: {requiresAuth:true},
         children:[
+            {
+                path: 'finance',
+                component: MainFinance,
+                name: 'main-finance'
+            },
+            {
+                path: 'earnings',
+                component: Earnings,
+                name: 'earnings'
+            },
             {
                 path: 'sales',
                 component: MainSales,
@@ -300,6 +364,11 @@ export const routes = [
                 name: 'home-requests'
             },
             {
+                path: 'justifications',
+                component: HomeJustifications,
+                name: 'home-justifications'
+            },
+            {
                 path:'schedule',
                 component: HomeSchedule,
                 name: 'home-schedule'
@@ -342,6 +411,11 @@ export const routes = [
                 props: true
             },
             {
+                path: 'forms',
+                component: HomeForms,
+                name: 'home-forms'
+            },
+            {
                 path: '/profile/:idUser',
                 component: Profile,
                 name: 'profile',
@@ -374,6 +448,16 @@ export const routes = [
                 path: 'sandbox',
                 component: Sandbox,
                 name: 'sandbox'
+            },
+            {
+                path: 'report',
+                component: Report,
+                name: 'report'
+            },
+            {
+                path: 'postsale',
+                component: HomePostSale,
+                name: 'postsale'
             }
         ]
     },
@@ -413,6 +497,12 @@ export const routes = [
         path: '/voucher-file/:voucherId',
         component: FileVoucher,
         name: 'voucher-file',
+        props: true
+    },
+    {
+        path: '/contract-file/:contractId',
+        component: ContractVoucher,
+        name: 'contract-file',
         props: true
     }
 ]

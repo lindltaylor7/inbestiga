@@ -30,13 +30,13 @@ use Illuminate\Http\Request;
 class ProjectController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Muestra una lista de los recursos.
      *
      * @return \Illuminate\Http\Response
      */
     public function index()
     {
-        $projects = Project::orderBy('updated_at')->with(['customer', 'activities', 'activities.progresses', 'team', 'product'])->get();
+        $projects = Project::orderBy('updated_at')->with(['activities', 'activities.progresses', 'team', 'product'])->get();
 
         foreach ($projects as $project) {
             foreach ($project->activities as $activity) {
@@ -50,7 +50,11 @@ class ProjectController extends Controller
 
         return $projects;
     }
-
+    /**
+     * Obtiene todos los proyectos académicos.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getAllProjectsAcad()
     {
         $projects = Project::with('team')->get();
@@ -87,7 +91,7 @@ class ProjectController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena un nuevo recurso en el almacenamiento.
      *
      * @param  \App\Http\Requests\StoreProjectRequest  $request
      * @return \Illuminate\Http\Response
@@ -123,51 +127,24 @@ class ProjectController extends Controller
             ]);
         }
 
-
         return response()->json([
             'msg' => 'success'
         ]);
     }
 
     /**
-     * Display the specified resource.
+     * Muestra el recurso especificado.
      *
-     * @param  \App\Models\Project  $project
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function show($id)
     {
-        /* $project = Project::with(['projectable', 'projectable.quotation'])->find($id); */
-
-        /* $quotation = $project->order->quotation;
-
-        $projectDetails = $quotation->details;
-
-        $total_mintime = 0;
-        $total_maxtime = 0;
-
-
-
-        foreach ($projectDetails as $detail) {
-            if ($detail->product_id == 34) {
-                $times = Time::where('product_id', '<', 34)->get();
-                foreach ($times as $time) {
-                    $total_mintime = $total_mintime + $time->min_time;
-                    $total_maxtime = $total_mintime + $time->max_time;
-                }
-            } else {
-                $price = Price::where('product_id', $detail->product_id)->where('price', $detail->price)->first();
-                $time = Time::where('product_id', $detail->product_id)->where('level', $price->level)->get();
-                $total_mintime = $total_mintime + $time->min_time;
-                $total_maxtime = $total_mintime + $time->max_time;
-            }
-        }
-
-
-
-        $total_time = $total_maxtime + $total_mintime / 2; */
-
-        $project = Project::with(['deliveries'])->find($id);
+        $project = Project::with(['deliveries', 'team', 'user', 'projectable', 'files', 'projectable.properties' => function ($query) {
+            $query->orderBy('id', 'desc')->get();
+        }, 'projectable.quotation', 'projectable.addendums', 'projectable.post_form', 'projectable.quotation.details', 'projectable.quotation.customers', 'posts' => function ($query) {
+            $query->orderBy('created_at', 'desc')->get();
+        }, 'posts.postable', 'posts.files', 'team', 'team.users', 'team.users.roles'])->find($id);
         return response()->json($project);
     }
 
@@ -195,9 +172,9 @@ class ProjectController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina el recurso especificado del almacenamiento.
      *
-     * @param  \App\Models\Project  $project
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)
@@ -210,7 +187,12 @@ class ProjectController extends Controller
             'msg' => 'success'
         ]);
     }
-
+    /**
+     * Cambia el estado de un proyecto.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function changeStatus(Request $request)
     {
         $project = Project::find($request->get('project_id'));
@@ -240,7 +222,12 @@ class ProjectController extends Controller
             'msg' => 'success'
         ]);
     }
-
+    /**
+     * Actualiza la calidad del proyecto.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function updateQuality($id)
     {
         $project = Project::find($id);
@@ -272,32 +259,44 @@ class ProjectController extends Controller
             'msg' => 'success'
         ]);
     }
-
+    /**
+     * Obtiene los proyectos asignados al usuario especificado.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function getMyProjects($id)
     {
         $user = User::find($id);
-        $projects = Project::with(['projectable', 'projectable.properties', 'projectable.quotation', 'projectable.quotation.customers', 'deliveries', 'deliveries.assigned_activities', 'team'])->where('team_id', '!=', null)->where('team_id', $user->team_id)->get();
-        return response()->json($projects);
+        $projects = Project::with(['projectable', 'projectable.properties', 'projectable.quotation', 'projectable.quotation.customers', 'deliveries', 'deliveries.assigned_activities', 'team'])->where('team_id', '!=', null)->where('team_id', $user->team_id)->orderBy('updated_at', 'desc')->get();
 
-        /* $user = User::find($id);
-        $projects = Project::where('team_id', $user->memoir->team_id)->with(['customer', 'activities', 'activities.tasks', 'activities.tasks.progress', 'order', 'order.quotation', 'order.quotation.details', 'order.quotation.details.product'])->get();
         $numTasks = 0;
         $numTasksCompleted = 0;
         foreach ($projects as $project) {
-            $project->num_activities = count($project->activities);
-            foreach ($project->activities as $activity) {
-                $numTasks += count($activity->tasks);
-                foreach ($activity->tasks as $task) {
-                    if ($task->status == 2) {
+            foreach ($project->deliveries as $delivery) {
+                foreach ($delivery->assigned_activities as $activity) {
+                    $numTasks = $numTasks + 1;
+                    if ($activity->status == 5) {
                         $numTasksCompleted++;
                     }
                 }
             }
+
             $project->num_tasks = $numTasks;
             $project->num_tasks_completed = $numTasksCompleted;
-        } */
-    }
 
+            $numTasks = 0;
+            $numTasksCompleted = 0;
+        }
+
+        return response()->json($projects);
+    }
+    /**
+     * Establece un nuevo proyecto a partir de una cotización.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function setProject(Request $request)
     {
 
@@ -452,14 +451,16 @@ class ProjectController extends Controller
             'msg' => 'success'
         ]);
     }
-
+    /**
+     * Busca proyectos y clientes según el criterio de búsqueda.
+     *
+     * @param  string  $search  Criterio de búsqueda para el nombre del cliente.
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function search($search)
     {
-        /* $contracts = Contract::with(['quotation', 'quotation.customers'])->whereHas('quotation.customers', function ($query) use ($search) {
-            $query->where('name', 'like', '%' . $search . '%');
-        })->get();
- */
-        $customers = Customer::with(['quotations', 'quotations.order', 'quotations.contract', 'quotations.order.projects', 'quotations.contract.projects', 'quotations.order.projects.deliveries', 'quotations.contract.projects.deliveries'])->whereHas('quotations')->where('name', 'like', '%' . $search . '%')->get();
+
+        $customers = Customer::with(['quotations', 'quotations.order', 'quotations.contract', 'quotations.contract.projects', 'quotations.contract.projects.projectable', 'quotations.contract.projects.projectable.properties', 'quotations.contract.projects.deliveries', 'quotations.contract.projects.projectable.quotation.customers'])->whereHas('quotations')->where('name', 'like', '%' . $search . '%')->get();
 
         $contracts = [];
         $orders = [];
@@ -507,7 +508,11 @@ class ProjectController extends Controller
             'projectable.quotation.customers'
         ])->get(); */
     }
-
+    /**
+     * Cuenta cuántos contratos están pendientes.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function projectPendings()
     {
         $number_contracts =  Quotation::whereHas('contract')->where('status', 11)->get();
@@ -517,7 +522,12 @@ class ProjectController extends Controller
         /* $contracts = Contract::doesntHave('properties')->get();
         return response()->json(count($contracts)); */
     }
-
+    /**
+     * Habilita un proyecto asociado a un contrato.
+     *
+     * @param  int  $id  ID del contrato.
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function enable($id)
     {
         $contract = Contract::with('projects')->find($id);
@@ -529,19 +539,29 @@ class ProjectController extends Controller
             'msg' => 'success'
         ]);
     }
-
+    /**
+     * Muestra la información de un proyecto específico y sus entregas.
+     *
+     * @param  int  $id  ID del proyecto.
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function sprints($id)
     {
         $project = Project::with(['deliveries', 'deliveries.assigned_activities', 'deliveries.assigned_activities.user', 'deliveries.assigned_activities.quality_indicators', 'projectable', 'projectable.quotation', 'projectable.quotation.customers', 'team', 'team.users', 'files'])->find($id);
         return response()->json($project);
     }
-
+    /**
+     * Muestra la información de un proyecto específico y sus entregas.
+     *
+     * @param  int  $id  ID del proyecto.
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function searchProject($search)
     {
 
-        $projects = Project::with(['projectable', 'projectable.quotation',])->get();
+        $projects = Project::with(['projectable', 'projectable.quotation', 'user'])->get();
 
-        $customers = Customer::with(['quotations', 'quotations.contract', 'quotations.contract.projects', 'quotations.contract.projects.deliveries', 'quotations.contract.projects.projectable.quotation.customers', 'quotations.contract.projects.team'])
+        $customers = Customer::with(['quotations', 'quotations.contract', 'quotations.contract.projects', 'quotations.contract.projects.user', 'quotations.contract.projects.deliveries', 'quotations.contract.projects.projectable.quotation.customers', 'quotations.contract.projects.team'])
             ->where('name', 'like', '%' . $search . '%')
             ->whereHas('quotations.contract.projects')
             ->get();
@@ -561,7 +581,13 @@ class ProjectController extends Controller
 
         return response()->json($projects);
     }
-
+    /**
+     * Actualiza el título de un proyecto.
+     *
+     * @param  int  $id    ID del proyecto.
+     * @param  string  $name  Nuevo título del proyecto.
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function updateProjectTitle($id, $name)
     {
         Project::find($id)->update([
@@ -572,11 +598,41 @@ class ProjectController extends Controller
             'msg' => 'success'
         ]);
     }
-
+    /**
+     * Actualiza el estado de un proyecto.
+     *
+     * @param  int  $id      ID del proyecto.
+     * @param  int  $status  Nuevo estado del proyecto.
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function updateProjectStatus($id, $status)
     {
         Project::find($id)->update([
             'status' => $status
+        ]);
+
+        return response()->json([
+            'msg' => 'success'
+        ]);
+    }
+
+    public function updUserProject($userId, $projectId)
+    {
+        $project = Project::find($projectId);
+        $project->update([
+            'user_id' => $userId
+        ]);
+
+        return response()->json([
+            'msg' => 'success'
+        ]);
+    }
+
+    public function assignTeam(Request $request)
+    {
+        $project = Project::find($request->get('project_id'));
+        $project->update([
+            'team_id' => $request->get('team_id')
         ]);
 
         return response()->json([

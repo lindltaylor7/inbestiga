@@ -10,12 +10,21 @@ use App\Models\Assigned_activity;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Quality_indicator;
+use App\Models\User;
 use Illuminate\Http\Request;
 
+/**
+ * Class DeliveryController
+ *
+ * Controlador para gestionar entregas en el sistema.
+ * Incluye métodos para crear, actualizar, eliminar y buscar entregas.
+ *
+ * @package App\Http\Controllers
+ */
 class DeliveryController extends Controller
 {
-    /**
-     * Display a listing of the resource.
+     /**
+     * Muestra una lista de todas las entregas del día actual.
      *
      * @return \Illuminate\Http\Response
      */
@@ -38,7 +47,7 @@ class DeliveryController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena una nueva entrega en la base de datos.
      *
      * @param  \App\Http\Requests\StoreDeliveryRequest  $request
      * @return \Illuminate\Http\Response
@@ -81,11 +90,11 @@ class DeliveryController extends Controller
         //
     }
 
-    /**
-     * Update the specified resource in storage.
+     /**
+     * Actualiza una entrega específica en la base de datos.
      *
      * @param  \App\Http\Requests\UpdateDeliveryRequest  $request
-     * @param  \App\Models\Delivery  $delivery
+     * @param  int  $id  El ID de la entrega a actualizar.
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id)
@@ -99,11 +108,32 @@ class DeliveryController extends Controller
             'delivery' => $delivery
         ]);
     }
+    /**
+     * Actualiza información adicional de una entrega específica.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id  El ID de la entrega a actualizar.
+     * @return \Illuminate\Http\Response
+     */
+    public function updateInfo(Request $request, $id)
+    {
+
+        $delivery = Delivery::find($id);
+
+        $delivery->update([
+            'date' => $request->get('date'),
+            'description' => $request->get('description')
+        ]);
+
+        return response()->json([
+            'msg' => 'success'
+        ]);
+    }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina una entrega específica de la base de datos.
      *
-     * @param  \App\Models\Delivery  $delivery
+     * @param  int  $id  El ID de la entrega a eliminar.
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)
@@ -114,7 +144,12 @@ class DeliveryController extends Controller
             'msg' => 'success'
         ]);
     }
-
+    /**
+     * Obtiene las entregas de un día específico.
+     *
+     * @param  string  $date  La fecha para filtrar las entregas.
+     * @return \Illuminate\Http\Response
+     */
     public function getDeliveriesByDate($date)
     {
         $deliveries = Delivery::with(['project', 'project.projectable', 'project.projectable.quotation', 'project.projectable.quotation.customers'])->where('date', $date)->get();
@@ -125,7 +160,12 @@ class DeliveryController extends Controller
             'payments' => $payments
         ]);
     }
-
+     /**
+     * Busca entregas basado en un término de búsqueda.
+     *
+     * @param  string  $search  El término de búsqueda.
+     * @return \Illuminate\Http\Response
+     */
     public function search($search)
     {
         $deliveries = Delivery::with(['deliverable', 'deliverable.quotation', 'deliverable.quotation.customer'])
@@ -135,28 +175,44 @@ class DeliveryController extends Controller
 
         return response()->json($deliveries);
     }
-
+    /**
+     * Marca una entrega como verificada.
+     *
+     * @param  int  $id  El ID de la entrega a verificar.
+     * @return \Illuminate\Http\Response
+     */
     public function checkDelivery($id)
     {
         $delivery = Delivery::find($id);
         $delivery->update([
-            'type' => 1
+            'type' => 2
         ]);
         return response()->json([
             'msg' => 'success'
         ]);
     }
-
-    public function deliveriesMonth()
+    /**
+     * Obtiene las entregas de un mes específico.
+     *
+     * @param  string  $month  El mes para filtrar las entregas.
+     * @return \Illuminate\Http\Response
+     */
+    public function deliveriesMonth($month)
     {
         /* $deliveries = Project::with('deliveries')->get(); */
-        $deliveries = Delivery::has('project')->with(['project', 'project.projectable', 'project.projectable.quotation', 'project.projectable.quotation.customers'])->get();
+        $deliveries = Delivery::has('project')->where('date', 'like', $month . '-%')->with(['project', 'project.projectable', 'project.projectable.quotation', 'project.projectable.quotation.customers', 'user'])->get();
 
         return response()->json([
             'deliveries' => $deliveries
         ]);
     }
-
+      /**
+     * Procesa un sprint para una entrega específica.
+     *
+     * @param  int  $pid  El ID del proceso académico.
+     * @param  int  $id  El ID de la entrega.
+     * @return \Illuminate\Http\Response
+     */
     public function processSprint($pid, $id)
     {
         $delivery = Delivery::find($id);
@@ -167,7 +223,8 @@ class DeliveryController extends Controller
             $assigned_activity = Assigned_activity::create([
                 'assigned_activitiable_id' =>   $id,
                 'assigned_activitiable_type' => 'App\Models\Delivery',
-                'name' => $productAcad->name
+                'name' => $productAcad->name,
+                'academic_process_id' => $academic_process->id
             ]);
 
             foreach ($productAcad->acceptance_indicators as $indicator) {
@@ -181,6 +238,27 @@ class DeliveryController extends Controller
 
         return response()->json([
             'msg' => 'success'
+        ]);
+    }
+    /**
+     * Cambia el usuario asociado a una entrega.
+     *
+     * @param  int  $deliveryId  El ID de la entrega.
+     * @param  int  $userId  El ID del usuario a asignar.
+     * @return \Illuminate\Http\Response
+     */
+    public function changeColorEvent($deliveryId, $userId)
+    {
+        $delivery = Delivery::find($deliveryId);
+        $delivery->update([
+            'user_id' => $userId
+        ]);
+
+        $user = User::find($userId);
+
+        return response()->json([
+            'msg' => 'success',
+            'user' => $user
         ]);
     }
 }

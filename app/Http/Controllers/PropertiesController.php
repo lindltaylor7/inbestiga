@@ -31,9 +31,9 @@ class PropertiesController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena una nueva propiedad en la base de datos.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  \Illuminate\Http\Request  $request  Datos de la solicitud de creación.
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
@@ -41,7 +41,15 @@ class PropertiesController extends Controller
         $property = Property::create([
             'propertiable_id' => $request->get('propertiable_id'),
             'propertiable_type' => $request->get('propertiable_type'),
-            'properties' => $request->get('properties')
+            'properties' => $request->get('properties'),
+            'project_situation_id' => $request->get('project_situation_id'),
+            'documentary_processing' => $request->get('documentary_processing'),
+        ]);
+
+        $contract = Contract::with(['quotation', 'quotation.customers'])->find($request->get('propertiable_id'));
+
+        $contract->quotation->customers->each->update([
+            'property_fill' => 0
         ]);
 
         $project = Project::where('projectable_id', $request->get('propertiable_id'))->where('projectable_type', $request->get('propertiable_type'))->get();
@@ -50,15 +58,17 @@ class PropertiesController extends Controller
             'status' => 1
         ]);
 
+
+
         return response()->json([
             'msg' => 'success'
         ]);
     }
 
     /**
-     * Display the specified resource.
+     * Muestra la propiedad especificada.
      *
-     * @param  int  $id
+     * @param  int  $id  ID de la propiedad a mostrar.
      * @return \Illuminate\Http\Response
      */
     public function show($id)
@@ -79,10 +89,9 @@ class PropertiesController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Actualiza la propiedad especificada en la base de datos.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
+     * @param  \Illuminate\Http\Request  $request  Datos de la solicitud de actualización.
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request)
@@ -90,7 +99,15 @@ class PropertiesController extends Controller
         $property = Property::where('propertiable_id', $request->get('propertiable_id'))->where('propertiable_type', $request->get('propertiable_type'))->first();
 
         $property->update([
-            'properties' => $request->get('properties')
+            'properties' => $request->get('properties'),
+            'documentary_processing' => $request->get('documentary_processing'),
+            'project_situation_id' => $request->get('project_situation_id')
+        ]);
+
+        $contract = Contract::with(['quotation', 'quotation.customers'])->find($request->get('propertiable_id'));
+
+        $contract->quotation->customers->each->update([
+            'property_fill' => 1
         ]);
 
         return response()->json([
@@ -108,13 +125,17 @@ class PropertiesController extends Controller
     {
         //
     }
-
+    /**
+     * Devuelve una lista de proyectos con sus propiedades asociadas.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function properties()
     {
         /* $properties = Property::orderBy('id', 'desc')->with(['propertiable', 'propertiable.projects', 'propertiable.projects.team', 'propertiable.quotation', 'propertiable.quotation.customers'])->get(); */
         /* $quotations =  Quotation::where('status', 11)->whereHas('contract')->with(['customers', 'contract', 'contract.properties', 'contract.projects'])->orderBy('id', 'desc')->paginate(8); */
 
-        $projects = Project::with(['projectable', 'projectable.properties', 'projectable.quotation', 'projectable.quotation.customers', 'team'])
+        $projects = Project::with(['projectable', 'projectable.properties', 'projectable.quotation', 'projectable.quotation.customers', 'team', 'user'])
             ->whereHas('projectable', function ($query) {
                 $query->whereHas('quotation', function ($secondquery) {
                     $secondquery->where('status', 11);

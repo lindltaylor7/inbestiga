@@ -11,6 +11,14 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    /**
+     * Handle user login and return an access token.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\Response
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
     public function login(Request $request)
     {
         $request->validate([
@@ -33,7 +41,14 @@ class AuthController extends Controller
             'area' => $user->subarea->area
         ]);
     }
-
+    /**
+     * Handle customer login and return an access token.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\Response
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
     public function loginUser(Request $request)
     {
         $request->validate([
@@ -50,12 +65,34 @@ class AuthController extends Controller
             ]);
         }
 
-        return response()->json($customer);
+        return response()->json([
+            'user' => $customer,
+            'token' => $customer->createToken($request->device_name)->plainTextToken
+        ]);
     }
-
+    /**
+     * Handle user logout and revoke the current access token.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\Response
+     */
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
+        return response()->json([
+            'msg' => 'Logout successfull'
+        ]);
+    }
+    /**
+     * Handle customer logout and revoke the current access token.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function logoutCustomer(Request $request)
+    {
+        return $request;
+        $request->customer()->currentAccessToken()->delete();
         return response()->json([
             'msg' => 'Logout successfull'
         ]);
